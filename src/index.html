@@ -18,7 +18,6 @@
 	#instructions { text-align: center; }
 	.licenses pre { font-size: .8em; }
 </style>
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script> 
 <script>
 // TODO: Use linked lists for snakes and snake.path
 // TODO: Use requestAnimationFrame instead of setTimeout
@@ -210,9 +209,9 @@ function mod(x, m) {
     return (x%m + m)%m;
 }
 
-$(document).ready(function() {
-	$('#start').click(function() {
-		$('#instructions').hide();
+document.addEventListener("DOMContentLoaded", function() {
+	document.getElementById('start').addEventListener('click', function() {
+		document.getElementById('instructions').style.display = 'none';
 
 		const music = document.getElementById('music');
 		music.play();
@@ -228,11 +227,11 @@ $(document).ready(function() {
 		}, false);
 		
 		// Add the player to the scene
-		food.img = $('#food')[0];
+		food.img = document.getElementById('food');
 		setFood();
 		
 		// now, wait a second!
-		window.setTimeout(step, 1000, [$('#canvas1')[0], $('#canvas2')[0]]);
+		window.setTimeout(step, 1000, [document.getElementById('canvas1'), document.getElementById('canvas2')]);
 	});
 });
 </script>
