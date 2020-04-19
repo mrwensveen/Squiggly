@@ -1,3 +1,5 @@
+import { mod } from './utils.js';
+
 const SIZE = 50;
 const STARVATION = 0.15;
 
@@ -8,7 +10,7 @@ function step(player, input, ctx, area, state) {
   const {x, y, width, height} = area;
 
   // Proceed to first/next level when there are no snakes
-  if (snakes.length === 0) {
+  if (snakes.filter(Boolean).length === 0) {
     snakes = Array(++level * 2).fill(0).map(() => ({
       v: [0, 0],
       path: [[Math.floor(Math.random() * width), Math.floor(Math.random() * height)]],
@@ -24,9 +26,10 @@ function step(player, input, ctx, area, state) {
   player.score += .5;
   
   for (let s = 0; s < snakes.length; s++) {
-    // Move the snake
     const snake = snakes[s];
+    if (!snake) continue;
 
+    // Move the snake
     moveSnake(snake, player, area);
 
     // Eat the player, if in range
@@ -67,7 +70,7 @@ function step(player, input, ctx, area, state) {
     snake.size -= STARVATION;
     if (snake.size <= 1) {
       // Remove the starved snake
-      snakes.splice(s, 1);
+      snakes[s] = null;
     }
 
     // Draw snake 
@@ -151,9 +154,5 @@ function moveSnake(snake, player, {width, height}) {
 }
 
 // --- Utils ---
-
-function mod(x, m) {
-  return (x%m + m)%m;
-}
 
 export default { step }
