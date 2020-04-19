@@ -4,10 +4,9 @@ const STARVATION = 0.15;
 let level = 0;
 let snakes = [];
 
-function step(player, input, canvas) {
-  const ctx = canvas.getContext('2d');
-  const { width, height } = canvas;
-  
+function step(player, input, ctx, area, state) {
+  const {x, y, width, height} = area;
+
   // Proceed to first/next level when there are no snakes
   if (snakes.length === 0) {
     snakes = Array(++level * 2).fill(0).map(() => ({
@@ -18,16 +17,17 @@ function step(player, input, canvas) {
     }));
   }
   
-  ctx.clearRect(0, 0, width, height);
+  ctx.clearRect(x, y, width, height);
   
   // Move the player
-  movePlayer(player, input, canvas);
+  movePlayer(player, input, area);
+  player.score += .5;
   
   for (let s = 0; s < snakes.length; s++) {
     // Move the snake
     const snake = snakes[s];
 
-    moveSnake(snake, player, canvas);
+    moveSnake(snake, player, area);
 
     // Eat the player, if in range
     const head = snake.path[snake.path.length - 1];
@@ -59,6 +59,8 @@ function step(player, input, canvas) {
           Math.floor(Math.random() * (width - player.img.width / 2)),
           Math.floor(Math.random() * (height - player.img.height / 2))
         ];
+
+        player.health -= 10;
     }
     
     // Hunger games
@@ -68,20 +70,14 @@ function step(player, input, canvas) {
       snakes.splice(s, 1);
     }
 
-    // TODO: Don't draw player for each snake
-    // Draw player
-    if (player.position) {
-      ctx.drawImage(player.img, player.position[0], player.position[1], player.img.width / 2, player.img.height / 2);
-    }
-      
     // Draw snake 
     let currentPoint = snake.path[0];
       
     for (let i = 1; i < snake.path.length; i++) {
       const nextPoint = snake.path[i];
       ctx.beginPath();
-      ctx.moveTo(currentPoint[0], currentPoint[1]);
-      ctx.lineTo(nextPoint[0], nextPoint[1]);
+      ctx.moveTo(currentPoint[0] + x, currentPoint[1] + y);
+      ctx.lineTo(nextPoint[0] + x, nextPoint[1] + y);
       
       const stroke = `hsla(${snake.hue}, 100%,  50%, ${(i + 1) / snake.path.length})`;
       ctx.strokeStyle = stroke;
@@ -91,23 +87,30 @@ function step(player, input, canvas) {
       
       currentPoint = nextPoint;
     }
+
+    // Draw player
+    if (player.position) {
+      ctx.drawImage(player.img, player.position[0] + x, player.position[1] + y, player.img.width / 2, player.img.height / 2);
+    }
   }
+
+  state.level = level;
 }
   
 function movePlayer(player, input, {width, height}) {
   if (player.position) {
     // Left - right
     if (input.keys[37]) {
-      player.position[0] = Math.max(player.position[0] - 2, 0);
+      player.position[0] = Math.max(player.position[0] - 3, 0);
     } else if (input.keys[39]) {
-      player.position[0] = Math.min(player.position[0] + 2, width - player.img.width / 2);
+      player.position[0] = Math.min(player.position[0] + 3, width - player.img.width / 2);
     }
     
     // Up - down
     if (input.keys[38]) {
-      player.position[1] = Math.max(player.position[1] - 2, 0);
+      player.position[1] = Math.max(player.position[1] - 3, 0);
     } else if (input.keys[40]) {
-      player.position[1] = Math.min(player.position[1] + 2, height - player.img.height / 2);
+      player.position[1] = Math.min(player.position[1] + 3, height - player.img.height / 2);
     }
   }
 }
