@@ -12,8 +12,8 @@ function step(player, input, ctx, area, state) {
   // Proceed to first/next level when there are no snakes
   if (snakes.filter(Boolean).length === 0) {
     snakes = Array(++level * 2).fill(0).map(() => ({
-      v: [0, 0],
-      path: [[Math.floor(Math.random() * width), Math.floor(Math.random() * height)]],
+      v: {x: 0, y: 0},
+      path: [{x: Math.floor(Math.random() * width), y: Math.floor(Math.random() * height)}],
       size: SIZE,
       hue: Math.floor(Math.random() * 360)
     }));
@@ -35,10 +35,10 @@ function step(player, input, ctx, area, state) {
     // Eat the player, if in range
     const head = snake.path[snake.path.length - 1];
     if (player.position &&
-      head[0] > player.position[0] &&
-      head[0] < (player.position[0] + player.img.width / 2) &&
-      head[1] > player.position[1] &&
-      head[1] < (player.position[1] + player.img.height / 2)) {
+      head.x > player.position.x &&
+      head.x < (player.position.x + player.img.width / 2) &&
+      head.y > player.position.y &&
+      head.y < (player.position.y + player.img.height / 2)) {
         snake.size += SIZE;
         
         // TODO: Audio
@@ -53,15 +53,15 @@ function step(player, input, ctx, area, state) {
           snake.size = SIZE;
           
           // A new snake is born.
-          snakes.push({v: [0, 0], path: [head], size: SIZE, hue: mod(snake.hue + Math.floor(Math.random() * 90) - 45, 360) });
+          snakes.push({v: {x: 0, y: 0}, path: [head], size: SIZE, hue: mod(snake.hue + Math.floor(Math.random() * 90) - 45, 360) });
         }
         
         // TODO: make this suck less
         // Place the player at a random position
-        player.position = [
-          Math.floor(Math.random() * (width - player.img.width / 2)),
-          Math.floor(Math.random() * (height - player.img.height / 2))
-        ];
+        player.position = {
+          x: Math.floor(Math.random() * (width - player.img.width / 2)),
+          y: Math.floor(Math.random() * (height - player.img.height / 2))
+        };
 
         player.health -= 10;
     }
@@ -79,8 +79,8 @@ function step(player, input, ctx, area, state) {
     for (let i = 1; i < snake.path.length; i++) {
       const nextPoint = snake.path[i];
       ctx.beginPath();
-      ctx.moveTo(currentPoint[0] + x, currentPoint[1] + y);
-      ctx.lineTo(nextPoint[0] + x, nextPoint[1] + y);
+      ctx.moveTo(currentPoint.x + x, currentPoint.y + y);
+      ctx.lineTo(nextPoint.x + x, nextPoint.y + y);
       
       const stroke = `hsla(${snake.hue}, 100%,  50%, ${(i + 1) / snake.path.length})`;
       ctx.strokeStyle = stroke;
@@ -93,7 +93,7 @@ function step(player, input, ctx, area, state) {
 
     // Draw player
     if (player.position) {
-      ctx.drawImage(player.img, player.position[0] + x, player.position[1] + y, player.img.width / 2, player.img.height / 2);
+      ctx.drawImage(player.img, player.position.x + x, player.position.y + y, player.img.width / 2, player.img.height / 2);
     }
   }
 
@@ -104,46 +104,46 @@ function movePlayer(player, input, {width, height}) {
   if (player.position) {
     // Left - right
     if (input.keys[37]) {
-      player.position[0] = Math.max(player.position[0] - 3, 0);
+      player.position.x = Math.max(player.position.x - 3, 0);
     } else if (input.keys[39]) {
-      player.position[0] = Math.min(player.position[0] + 3, width - player.img.width / 2);
+      player.position.x = Math.min(player.position.x + 3, width - player.img.width / 2);
     }
     
     // Up - down
     if (input.keys[38]) {
-      player.position[1] = Math.max(player.position[1] - 3, 0);
+      player.position.y = Math.max(player.position.y - 3, 0);
     } else if (input.keys[40]) {
-      player.position[1] = Math.min(player.position[1] + 3, height - player.img.height / 2);
+      player.position.y = Math.min(player.position.y + 3, height - player.img.height / 2);
     }
   }
 }
 
 function moveSnake(snake, player, {width, height}) {
   // Add something to the vector
-  snake.v[0] += Math.random() * 1 - .5;
-  snake.v[1] += Math.random() * 1 - .5;
+  snake.v.x += Math.random() * 1 - .5;
+  snake.v.y += Math.random() * 1 - .5;
   
   // Max speed
-  snake.v[0] = Math.min(Math.max(snake.v[0], -4), 4);
-  snake.v[1] = Math.min(Math.max(snake.v[1], -4), 4);
+  snake.v.x = Math.min(Math.max(snake.v.x, -4), 4);
+  snake.v.y = Math.min(Math.max(snake.v.y, -4), 4);
   
   // Steer towards the player
   const head = snake.path[snake.path.length - 1];
   if (player.position) {
-    snake.v[0] += head[0] > (player.position[0] + player.img.width / 4) ? -.1 : .1;
-    snake.v[1] += head[1] > (player.position[1]  + player.img.height / 4) ? -.1 : .1;
+    snake.v.x += head.x > (player.position.x + player.img.width / 4) ? -.1 : .1;
+    snake.v.y += head.y > (player.position.y  + player.img.height / 4) ? -.1 : .1;
   }
   
   // add the vector to the path
   const lastPoint = snake.path[snake.path.length - 1];
-  const newPoint = [lastPoint[0] + snake.v[0], lastPoint[1] + snake.v[1]];
+  const newPoint = {x: lastPoint.x + snake.v.x, y: lastPoint.y + snake.v.y};
   
   // bounce
-  if (newPoint[0] < 0 || newPoint[0] > width) {
-    snake.v[0] *= -1;
+  if (newPoint.x < 0 || newPoint.x > width) {
+    snake.v.x *= -1;
   }
-  if (newPoint[1] < 0 || newPoint[1] > height) {
-    snake.v[1] *= -1;
+  if (newPoint.y < 0 || newPoint.y > height) {
+    snake.v.y *= -1;
   }
   
   // Add the new point to the head of the snake

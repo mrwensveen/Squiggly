@@ -102,10 +102,10 @@ document.addEventListener("DOMContentLoaded", function() {
 		// Add the player to the scene
 		player.img = new Image();
 		player.img.addEventListener('load', function() {
-			player.position = [
-				Math.floor(Math.random() * (WIDTH - player.img.width / 2)),
-				Math.floor(Math.random() * (HEIGHT - player.img.height / 2))
-			];
+			player.position = {
+				x: Math.floor(Math.random() * (WIDTH - player.img.width / 2)),
+				y: Math.floor(Math.random() * (HEIGHT - player.img.height / 2))
+			};
 		});
 		player.img.src = 'player.png';
 
