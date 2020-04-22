@@ -100,7 +100,7 @@ function step(player, input, { dt, ctx }, area) {
 }
   
 function movePlayer(timeScale, player, input, { width, height }) {
-  const speed = timeScale * 2.5;
+  const speed = timeScale * 2.8;
   if (player.position) {
     // Left - right
     if (input.keys[37]) {
