@@ -65,6 +65,10 @@ function step(player, input, { dt, ctx }, area) {
       };
 
       player.health -= 10;
+
+      if (player.health <= 0) {
+        snakes = [];
+      }
     }
     
     // Hunger games
@@ -100,7 +104,7 @@ function step(player, input, { dt, ctx }, area) {
 }
   
 function movePlayer(timeScale, player, input, { width, height }) {
-  const speed = timeScale * 2.5;
+  const speed = timeScale * 2.8;
   if (player.position) {
     // Left - right
     if (input.keys[37]) {
@@ -154,7 +158,5 @@ function moveSnake(timeScale, snake, player, { width, height }) {
     snake.path.shift();
   }
 }
-
-// --- Utils ---
 
 export default { step }
