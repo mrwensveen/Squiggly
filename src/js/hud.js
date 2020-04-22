@@ -3,7 +3,8 @@ function step(player, _input, { ctx }, area) {
 
   ctx.clearRect(x, y, width, height);
 
-  ctx.font = '16px bold Arial, Helvetica, sans-serif';
+  ctx.font = '18px bold Arial, Helvetica, sans-serif';
+  ctx.fillStyle = 'black';
   ctx.textBaseline = 'top';
   ctx.fillText(`LEVEL: ${Math.floor(player.level)}`, 10 + x, 5 + y);
   ctx.fillText(`SCORE: ${Math.floor(player.score)}`, 160 + x, 5 + y);

@@ -20,7 +20,6 @@
   .licenses pre { font-size: .8em; }
 </style>
 <script type="module">
-// TODO: Use requestAnimationFrame instead of setTimeout
 
 import level from './js/level.js';
 import hud from './js/hud.js';
@@ -28,13 +27,19 @@ import hiscores from './js/hiscores.js';
 
 // --- Player controls ---
 
-const KEYS = {};
+// TODO: Separate this into a module
+
+const INPUT = {
+  keys: {},
+  keyUpHandlers: []
+}
+
 document.addEventListener("keydown", event => {
   if (event.isComposing || event.keyCode === 229) {
     return;
   }
   
-  KEYS[event.keyCode] = true;
+  INPUT.keys[event.keyCode] = true;
 });
 
 document.addEventListener("keyup", event => {
@@ -42,7 +47,11 @@ document.addEventListener("keyup", event => {
     return;
   }
   
-  delete KEYS[event.keyCode];
+  delete INPUT.keys[event.keyCode];
+
+  if(INPUT.keyUpHandlers && INPUT.keyUpHandlers.length) {
+    INPUT.keyUpHandlers.forEach(h => h && h(event));
+  }
 });
 
 // --- Game elements ---
@@ -81,14 +90,13 @@ function pump(timestamp)	{
   if (dt > FPS_INTERVAL) {
     start = timestamp - (dt % FPS_INTERVAL);
 
-    const input = { keys: KEYS };
     const renderContext = { ctx: render.canvases[render.currentBuffer].getContext('2d'), dt, start };
 
     if (player.health > 0) {
-      level.step(player, input, renderContext, { x: 0, y: 0, width: WIDTH, height: HEIGHT - 30 });
-      hud.step(player, input, renderContext, { x: 0, y: 570, width: WIDTH, height: HEIGHT - 570 });
+      level.step(player, INPUT, renderContext, { x: 0, y: 0, width: WIDTH, height: HEIGHT - 30 });
+      hud.step(player, INPUT, renderContext, { x: 0, y: 570, width: WIDTH, height: HEIGHT - 570 });
     } else {
-      hiscores.step(player, input, renderContext, { x: 0, y: 0, width: WIDTH, height: HEIGHT });
+      hiscores.step(player, INPUT, renderContext, { x: 0, y: 0, width: WIDTH, height: HEIGHT });
     }
 
     // Show the drawn upon canvas
@@ -112,7 +120,6 @@ document.addEventListener("DOMContentLoaded", function() {
     music.addEventListener('ended', function() {
       track = (track + 1) % 3; // 3 is the number of songs (so far)
       let nextSong = `music_${(track + 1).toString().padStart(2, '0')}.mp3`;
-      console.log(track, nextSong);
       music.src = nextSong;
       music.load();
       music.play();

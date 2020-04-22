@@ -65,6 +65,10 @@ function step(player, input, { dt, ctx }, area) {
       };
 
       player.health -= 10;
+
+      if (player.health <= 0) {
+        snakes = [];
+      }
     }
     
     // Hunger games
@@ -154,7 +158,5 @@ function moveSnake(timeScale, snake, player, { width, height }) {
     snake.path.shift();
   }
 }
-
-// --- Utils ---
 
 export default { step }
