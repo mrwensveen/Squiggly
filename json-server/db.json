@@ -9,80 +9,20 @@
     {
       "id": 2,
       "name": "MRW",
-      "score": 2000,
+      "score": 1000,
       "timestamp": 225561240000
     },
     {
       "id": 3,
       "name": "AHW",
-      "score": 3000,
+      "score": 1000,
       "timestamp": 1108684800000
     },
     {
       "id": 4,
       "name": "JGW",
-      "score": 4000,
+      "score": 1000,
       "timestamp": 1192665600000
-    },
-    {
-      "name": "MRW",
-      "score": 49,
-      "timestamp": 1587557126919,
-      "id": 5
-    },
-    {
-      "name": "MRW",
-      "score": 49,
-      "timestamp": 1587557129648,
-      "id": 6
-    },
-    {
-      "name": "QWE",
-      "score": 37,
-      "timestamp": 1587557358852,
-      "id": 7
-    },
-    {
-      "name": "WOW",
-      "score": 286,
-      "timestamp": 1587557397952,
-      "id": 8
-    },
-    {
-      "name": "MRW",
-      "score": 35,
-      "timestamp": 1587557420247,
-      "id": 9
-    },
-    {
-      "name": "MRW",
-      "score": 26,
-      "timestamp": 1587557434209,
-      "id": 10
-    },
-    {
-      "name": "MRW",
-      "score": 28,
-      "timestamp": 1587557468534,
-      "id": 11
-    },
-    {
-      "name": "MRW",
-      "score": 38,
-      "timestamp": 1587557481696,
-      "id": 12
-    },
-    {
-      "name": "YES",
-      "score": 61,
-      "timestamp": 1587557508251,
-      "id": 13
-    },
-    {
-      "name": "YOO",
-      "score": 58,
-      "timestamp": 1587557526686,
-      "id": 14
     }
   ]
 }
