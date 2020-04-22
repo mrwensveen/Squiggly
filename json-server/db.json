@@ -1,8 +1,8 @@
 {
   "scores": [
-    { "name": "WJC", "score": 1000, "timestamp": 197337600000 },
-    { "name": "MRW", "score": 1000, "timestamp": 225561240000 },
-    { "name": "AHW", "score": 1000, "timestamp": 1108684800000 },
-    { "name": "JGW", "score": 1000, "timestamp": 1192665600000 }
+    { "id": 1, "name": "WJC", "score": 1000, "timestamp": 197337600000 },
+    { "id": 2, "name": "MRW", "score": 2000, "timestamp": 225561240000 },
+    { "id": 3, "name": "AHW", "score": 3000, "timestamp": 1108684800000 },
+    { "id": 4, "name": "JGW", "score": 4000, "timestamp": 1192665600000 }
   ]
 }
