@@ -85,7 +85,8 @@ let start = 0;
 function pump(timestamp)	{
   if (!start) start = timestamp;
 
-  const dt = timestamp - start;
+  const dt = timestamp - start; // Time since previous frame
+
   if (dt > FPS_INTERVAL) {
     start = timestamp - (dt % FPS_INTERVAL);
 
