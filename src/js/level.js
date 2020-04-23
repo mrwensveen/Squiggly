@@ -2,17 +2,18 @@ import { mod } from './utils.js';
 
 const SIZE = 50;
 const STARVATION = 0.15;
+const TAU = Math.PI * 2;
 
 let snakes = [];
 
-function step(player, input, { dt, ctx }, area) {
+function step(player, input, { dt, ctx, start }, area) {
   const { x, y, width, height } = area;
   const timeScale = dt / 70; // This is an arbitrary number that seems to work well.
 
   // Proceed to first/next level when there are no snakes
   if (snakes.filter(Boolean).length === 0) {
     snakes = Array(++player.level * 2).fill(0).map(() => ({
-      v: { x: 0, y: 0 },
+      v: { direction: Math.random() * TAU, speed: 3 },
       path: [{ x: Math.floor(Math.random() * width), y: Math.floor(Math.random() * height) }],
       size: SIZE,
       hue: Math.floor(Math.random() * 360)
@@ -30,7 +31,7 @@ function step(player, input, { dt, ctx }, area) {
     if (!snake) continue;
 
     // Move the snake
-    moveSnake(timeScale, snake, player, area);
+    moveSnake(timeScale, snake, player, area, start);
 
     // Eat the player, if in range
     const head = snake.path[snake.path.length - 1];
@@ -45,12 +46,10 @@ function step(player, input, { dt, ctx }, area) {
       // TODO: Audio?
       //document.getElementById('death').play();
       
+      // If the snake gets too big, split it into two
       if (snake.size > SIZE * 2) {
-        // Split the path in two
-        const path = snake.path;
-        
-        // Keep the head
-        snake.path = path.slice(-SIZE);
+        // Keep the front
+        snake.path = snake.path.slice(-SIZE);
         snake.size = SIZE;
         
         // A new snake is born.
@@ -104,52 +103,69 @@ function step(player, input, { dt, ctx }, area) {
 }
   
 function movePlayer(timeScale, player, input, { width, height }) {
-  const speed = timeScale * 2.8;
-  if (player.position) {
-    // Left - right
-    if (input.keys[37]) {
-      player.position.x = Math.max(player.position.x - speed, 0);
-    } else if (input.keys[39]) {
-      player.position.x = Math.min(player.position.x + speed, width - player.img.width / 2);
-    }
-    
-    // Up - down
-    if (input.keys[38]) {
-      player.position.y = Math.max(player.position.y - speed, 0);
-    } else if (input.keys[40]) {
-      player.position.y = Math.min(player.position.y + speed, height - player.img.height / 2);
-    }
+  if (!player.position) return;
+
+  const diagonal = (input.keys[37] || input.keys[39]) && (input.keys[38] || input.keys[40]);
+  const speed = timeScale * 2.5 * (diagonal ? 1 : Math.SQRT2);
+
+  // Left - right
+  if (input.keys[37]) {
+    player.position.x = Math.max(player.position.x - speed, 0);
+  } else if (input.keys[39]) {
+    player.position.x = Math.min(player.position.x + speed, width - player.img.width / 2);
+  }
+  
+  // Up - down
+  if (input.keys[38]) {
+    player.position.y = Math.max(player.position.y - speed, 0);
+  } else if (input.keys[40]) {
+    player.position.y = Math.min(player.position.y + speed, height - player.img.height / 2);
   }
 }
 
-function moveSnake(timeScale, snake, player, { width, height }) {
-  // Add something to the vector
-  snake.v.x += timeScale * (Math.random() - .5);
-  snake.v.y += timeScale * (Math.random() - .5);
-  
-  // Max speed
-  const maxSpeed = timeScale * 4;
-  snake.v.x = Math.min(Math.max(snake.v.x, -maxSpeed), maxSpeed);
-  snake.v.y = Math.min(Math.max(snake.v.y, -maxSpeed), maxSpeed);
-  
-  // Steer towards the player
-  const steerSpeed = timeScale * .1;
-  const head = snake.path[snake.path.length - 1];
-  if (player.position) {
-    snake.v.x += head.x > (player.position.x + player.img.width / 4) ? -steerSpeed : steerSpeed;
-    snake.v.y += head.y > (player.position.y  + player.img.height / 4) ? -steerSpeed : steerSpeed;
+function moveSnake(timeScale, snake, player, { width, height }, start) {
+  // Only allow to change direction once every n milliseconds
+  if (start % 100 < 34) { //FPS_INTERVAL
+
+    // Add something random to the vector
+    snake.v.direction += (Math.random() - .5) * Math.PI / 4; // Max direction change
+
+    // Steer towards the player
+    if (player.position) {
+      const steerSpeed =  Math.PI / 32;
+      const head = snake.path[snake.path.length - 1];
+      const targetVector = {
+        x: head.x - (player.position.x + player.img.width / 4),
+        y: head.y - (player.position.y  + player.img.height / 4)
+      };
+      const targetAngle = mod(snake.v.direction - Math.atan2(targetVector.y, targetVector.x), TAU)
+
+      snake.v.direction = mod(snake.v.direction + (targetAngle === 0 ? 0 :
+          (targetAngle < Math.PI ? steerSpeed : -steerSpeed)), TAU);
+    }
+    
+    // Max speed
+    const maxSpeed = 5, minSpeed = 1;
+    snake.v.speed = Math.max(Math.min(snake.v.speed + Math.random() - .5, maxSpeed), minSpeed);
+
+    // Constant speed
+    //snake.v.speed = 2;
   }
+  
   
   // add the vector to the path
   const lastPoint = snake.path[snake.path.length - 1];
-  const newPoint = { x: lastPoint.x + snake.v.x, y: lastPoint.y + snake.v.y };
+  const newPoint = {
+    x: lastPoint.x + (Math.cos(snake.v.direction) * snake.v.speed * timeScale),
+    y: lastPoint.y + (Math.sin(snake.v.direction) * snake.v.speed * timeScale)
+  };
   
   // bounce
   if (newPoint.x < 0 || newPoint.x > width) {
-    snake.v.x *= -1;
+    snake.v.direction = mod(Math.PI - snake.v.direction, TAU);
   }
   if (newPoint.y < 0 || newPoint.y > height) {
-    snake.v.y *= -1;
+    snake.v.direction = mod(0 - snake.v.direction, TAU);
   }
   
   // Add the new point to the head of the snake
