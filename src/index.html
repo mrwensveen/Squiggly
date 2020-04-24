@@ -61,7 +61,7 @@ const WIDTH = 800, HEIGHT = 600;
 const player = {
   img: null,
   position: null,
-  health: 10,
+  health: window.location.hash === '#test' ? 10 : 100,
   score: 0,
   level: 0
 };
