@@ -61,7 +61,7 @@ const WIDTH = 800, HEIGHT = 600;
 const player = {
   img: null,
   position: null,
-  health: 100,
+  health: 10,
   score: 0,
   level: 0
 };
@@ -70,17 +70,7 @@ const player = {
 const FPS = 30;
 const FPS_INTERVAL = 1000 / FPS;
 
-const render = {
-  currentBuffer: 0,
-  canvases: null
-};
-
-function flip(render) {
-  render.canvases[1 - render.currentBuffer].style.visibility = 'hidden';
-  render.canvases[render.currentBuffer].style.visibility = 'visible';
-
-  render.currentBuffer = 1 - render.currentBuffer;
-}
+let canvas = null;
 
 let start = 0;
 function pump(timestamp)	{
@@ -91,7 +81,7 @@ function pump(timestamp)	{
   if (dt > FPS_INTERVAL) {
     start = timestamp; // - (dt % FPS_INTERVAL);
 
-    const renderContext = { ctx: render.canvases[render.currentBuffer].getContext('2d'), dt, start };
+    const renderContext = { ctx: canvas.getContext('2d'), dt, start };
 
     if (player.health > 0) {
       level.step(player, INPUT, renderContext, { x: 0, y: 0, width: WIDTH, height: HEIGHT - 50 });
@@ -99,9 +89,6 @@ function pump(timestamp)	{
     } else {
       hiscores.step(player, INPUT, renderContext, { x: 0, y: 0, width: WIDTH, height: HEIGHT });
     }
-
-    // Show the drawn upon canvas
-    flip(render);
   }
   
   // loop the shit out of this function
@@ -114,6 +101,7 @@ document.addEventListener("DOMContentLoaded", function() {
   document.getElementById('start').addEventListener('click', function() {
     document.getElementById('instructions').style.display = 'none';
     document.getElementById('background').style.visibility = 'visible';
+    document.getElementById('canvas').style.visibility = 'visible';
 
     const music = document.getElementById('music');
     music.play();
@@ -132,13 +120,13 @@ document.addEventListener("DOMContentLoaded", function() {
     player.img.addEventListener('load', function() {
       player.position = {
         x: Math.floor(Math.random() * (WIDTH - player.img.width / 2)),
-        y: Math.floor(Math.random() * (HEIGHT - player.img.height / 2))
+        y: Math.floor(Math.random() * (HEIGHT - 50 - player.img.height / 2)) // Mind the HUD
       };
     });
     player.img.src = 'player.png';
 
     // now, wait a second!
-    render.canvases = [document.getElementById('canvas1'), document.getElementById('canvas2')];
+    canvas = document.getElementById('canvas');
     window.requestAnimationFrame(pump);
   });
 });
@@ -180,8 +168,7 @@ https://creativecommons.org/licenses/by/4.0/
   </div>
   <div id="canvases">
     <img id="background" src="bg.png" width="800" height="600" />
-    <canvas id="canvas1" width="800" height="600"></canvas>
-    <canvas id="canvas2" width="800" height="600"></canvas>
+    <canvas id="canvas" width="800" height="600"></canvas>
   </div>
   <audio id="music" src="music_01.mp3"></audio>
 </body>
