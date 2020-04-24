@@ -33,7 +33,7 @@ function step(player, input, { dt, ctx, start }, area) {
     // Move the snake
     moveSnake(timeScale, snake, player, area, start);
 
-    // Eat the player, if in range
+    // Bite the player, if in range
     const head = snake.path[snake.path.length - 1];
     if (player.position &&
       head.x > player.position.x &&
@@ -78,30 +78,38 @@ function step(player, input, { dt, ctx, start }, area) {
     }
 
     // Draw snake 
-    let currentPoint = snake.path[0];
-      
-    for (let i = 1; i < snake.path.length; i++) {
-      const nextPoint = snake.path[i];
-      ctx.beginPath();
-      ctx.moveTo(currentPoint.x + x, currentPoint.y + y);
-      ctx.lineTo(nextPoint.x + x, nextPoint.y + y);
-      
-      const stroke = `hsla(${snake.hue}, 100%,  50%, ${(i + 1) / snake.path.length})`;
-      ctx.strokeStyle = stroke;
-      ctx.lineWidth = 3;
-      ctx.lineCap = 'round';
-      ctx.stroke();
-      
-      currentPoint = nextPoint;
-    }
-
-    // Draw player
-    if (player.position) {
-      ctx.drawImage(player.img, player.position.x + x, player.position.y + y, player.img.width / 2, player.img.height / 2);
-    }
+    drawSnake(snake, ctx, area);
   }
+
+  // Draw player
+  drawPlayer(player, ctx, area);
 }
   
+function drawSnake(snake, ctx, { x, y }) {
+  let currentPoint = snake.path[0];
+  for (let i = 1; i < snake.path.length; i++) {
+    const nextPoint = snake.path[i];
+
+    ctx.beginPath();
+    ctx.moveTo(currentPoint.x + x, currentPoint.y + y);
+    ctx.lineTo(nextPoint.x + x, nextPoint.y + y);
+
+    const stroke = `hsla(${snake.hue}, 100%,  50%, ${(i + 1) / snake.path.length})`;
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    currentPoint = nextPoint;
+  }
+}
+
+function drawPlayer(player, ctx, { x, y }) {
+  if (player.position) {
+    ctx.drawImage(player.img, player.position.x + x, player.position.y + y, player.img.width / 2, player.img.height / 2);
+  }
+}
+
 function movePlayer(timeScale, player, input, { width, height }) {
   if (!player.position) return;
 
