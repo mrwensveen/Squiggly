@@ -71,7 +71,9 @@ function verticalGradient(ctx, offsetY, height, ...colorStops) {
 
 function handlePlayerScore(input) {
   // Add a keydown handler to allow the user to enter a name
-  const handlerIndex = input.keyUpHandlers.push(event => {
+  if (input.keyUpHandlers.has('handlePlayerScore')) return;
+
+  input.keyUpHandlers.set('handlePlayerScore', event => {
     if (event.key.length !== 1) return;
 
     if (playerHiscore.name.indexOf('_') >= 0) {
@@ -90,26 +92,29 @@ function handlePlayerScore(input) {
       });
 
       // Remove the handler
-      input.keyUpHandlers.splice(handlerIndex, 1);
+      input.keyUpHandlers.delete('handlePlayerScore');
       playerHiscore = null;
     }
-  }) - 1;
+  });
 }
 
 function handleWait(player, input) {
-  const handlerIndex = input.keyUpHandlers.push(event => {
+  if (input.keyUpHandlers.has('handleWait')) return;
+
+  const handlerIndex = input.keyUpHandlers.set('handleWait', event => {
     if (event.code !== "Space") return;
 
     // TODO: Move this to a more logical place
     player.score = 0;
     player.level = 0;
     player.health = 100;
+    player.powerup = null;
 
     fetchedScores = false;
 
     // Remove the handler
-    input.keyUpHandlers.splice(handlerIndex, 1);
-  }) - 1;
+    input.keyUpHandlers.delete('handleWait');
+  });
 }
 
 export default { step };

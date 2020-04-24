@@ -10,10 +10,12 @@ function step(player, _input, { ctx }, area) {
 
   ctx.fillText(Math.floor(player.score), 48 + x, top);
 
-  // TODO: Health bar
   ctx.fillText(Math.floor(player.health), 224 + x, top);
 
-  // TODO: Powerup + bar
+  if (player.powerup) {
+    ctx.drawImage(player.powerup.img, 400, top, 16, 16);
+    ctx.fillText(Math.floor(player.powerup.value), 430, top);
+  }
 
   ctx.fillText(Math.floor(player.level), 568 + x, top);
 }

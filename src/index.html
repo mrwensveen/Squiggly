@@ -5,16 +5,19 @@
 <link href='https://fonts.googleapis.com/css?family=Rubik Mono One' rel='stylesheet'>
 <style>
   body { background-color: #fff; }
-  #canvases { position: relative; }
+  #canvases { position: relative; width: 800px; height: 600px; }
   #canvases canvas {
     position: absolute;
     top: 0;
     left: 0;
     visibility: hidden;
+    width: 100%;
+    height: 100%;
   }
   #canvases img {
     visibility: hidden;
-    border: 1px solid black;
+    width: 100%;
+    height: 100%;
   }
   #instructions { text-align: center; }
   .licenses pre { font-size: .8em; }
@@ -30,8 +33,10 @@ import hiscores from './js/hiscores.js';
 // TODO: Separate this into a module
 
 const INPUT = {
-  keys: {},
-  keyUpHandlers: []
+  keys: [],
+  shift: false,
+  keyDownHandlers: new Map(),
+  keyUpHandlers: new Map()
 }
 
 document.addEventListener("keydown", event => {
@@ -39,7 +44,15 @@ document.addEventListener("keydown", event => {
     return;
   }
   
-  INPUT.keys[event.keyCode] = true;
+  if (event.key.startsWith("Shift")) {
+    INPUT.shift = true;
+  } else {
+    INPUT.keys[event.keyCode] = true;
+  }
+
+  if(INPUT.keyDownHandlers && INPUT.keyDownHandlers.size) {
+    INPUT.keyDownHandlers.forEach(h => h && h(event));
+  }
 });
 
 document.addEventListener("keyup", event => {
@@ -47,9 +60,13 @@ document.addEventListener("keyup", event => {
     return;
   }
   
-  delete INPUT.keys[event.keyCode];
+  if (event.key.startsWith("Shift")) {
+    INPUT.shift = false;
+  } else {
+    delete INPUT.keys[event.keyCode];
+  }
 
-  if(INPUT.keyUpHandlers && INPUT.keyUpHandlers.length) {
+  if(INPUT.keyUpHandlers && INPUT.keyUpHandlers.size) {
     INPUT.keyUpHandlers.forEach(h => h && h(event));
   }
 });
@@ -63,7 +80,8 @@ const player = {
   position: null,
   health: window.location.hash === '#test' ? 10 : 100,
   score: 0,
-  level: 0
+  level: 0,
+  powerup: null
 };
 
 // --- Rendering stuff ---
@@ -97,6 +115,18 @@ function pump(timestamp)	{
 
 // --- Initialize the game ---
 
+function toggleFullscreen() {
+  const elem = document.getElementById('canvases');
+
+  if (!document.fullscreenElement) {
+    elem.requestFullscreen().catch(err => {
+      alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+    });
+  } else {
+    document.exitFullscreen();
+  }
+}
+
 document.addEventListener("DOMContentLoaded", function() {
   document.getElementById('start').addEventListener('click', function() {
     document.getElementById('instructions').style.display = 'none';
@@ -118,15 +148,19 @@ document.addEventListener("DOMContentLoaded", function() {
     // Add the player to the scene
     player.img = new Image();
     player.img.addEventListener('load', function() {
+      player.img.width /= 2;
+      player.img.height /= 2;
       player.position = {
-        x: Math.floor(Math.random() * (WIDTH - player.img.width / 2)),
-        y: Math.floor(Math.random() * (HEIGHT - 50 - player.img.height / 2)) // Mind the HUD
+        x: Math.floor(Math.random() * (WIDTH - player.img.width)),
+        y: Math.floor(Math.random() * (HEIGHT - 50 - player.img.height)) // Mind the HUD
       };
     });
     player.img.src = 'player.png';
 
     // now, wait a second!
     canvas = document.getElementById('canvas');
+    toggleFullscreen();
+
     window.requestAnimationFrame(pump);
   });
 });
