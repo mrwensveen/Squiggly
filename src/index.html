@@ -5,16 +5,20 @@
 <link href='https://fonts.googleapis.com/css?family=Rubik Mono One' rel='stylesheet'>
 <style>
   body { background-color: #fff; }
-  canvas {
+  #canvases { position: relative; width: 800px; height: 600px; cursor: none; }
+  #canvases canvas {
     position: absolute;
     top: 0;
     left: 0;
     visibility: hidden;
-    border: 1px solid black;
-    background-image: url("bg.jpg");
-    background-size: cover;
+    width: 100%;
+    height: 100%;
   }
-  #canvases { position: relative; }
+  #canvases img {
+    visibility: hidden;
+    width: 100%;
+    height: 100%;
+  }
   #instructions { text-align: center; }
   .licenses pre { font-size: .8em; }
 </style>
@@ -29,8 +33,10 @@ import hiscores from './js/hiscores.js';
 // TODO: Separate this into a module
 
 const INPUT = {
-  keys: {},
-  keyUpHandlers: []
+  keys: [],
+  shift: false,
+  keyDownHandlers: new Map(),
+  keyUpHandlers: new Map()
 }
 
 document.addEventListener("keydown", event => {
@@ -38,7 +44,15 @@ document.addEventListener("keydown", event => {
     return;
   }
   
-  INPUT.keys[event.keyCode] = true;
+  if (event.key.startsWith("Shift")) {
+    INPUT.shift = true;
+  } else {
+    INPUT.keys[event.keyCode] = true;
+  }
+
+  if(INPUT.keyDownHandlers && INPUT.keyDownHandlers.size) {
+    INPUT.keyDownHandlers.forEach(h => h && h(event));
+  }
 });
 
 document.addEventListener("keyup", event => {
@@ -46,9 +60,13 @@ document.addEventListener("keyup", event => {
     return;
   }
   
-  delete INPUT.keys[event.keyCode];
+  if (event.key.startsWith("Shift")) {
+    INPUT.shift = false;
+  } else {
+    delete INPUT.keys[event.keyCode];
+  }
 
-  if(INPUT.keyUpHandlers && INPUT.keyUpHandlers.length) {
+  if(INPUT.keyUpHandlers && INPUT.keyUpHandlers.size) {
     INPUT.keyUpHandlers.forEach(h => h && h(event));
   }
 });
@@ -60,26 +78,17 @@ const WIDTH = 800, HEIGHT = 600;
 const player = {
   img: null,
   position: null,
-  health: 100,
+  health: window.location.hash === '#test' ? 10 : 100,
   score: 0,
-  level: 0
+  level: 0,
+  powerup: null
 };
 
 // --- Rendering stuff ---
 const FPS = 30;
 const FPS_INTERVAL = 1000 / FPS;
 
-const render = {
-  currentBuffer: 0,
-  canvases: null
-};
-
-function flip(render) {
-  render.canvases[1 - render.currentBuffer].style.visibility = 'hidden';
-  render.canvases[render.currentBuffer].style.visibility = 'visible';
-
-  render.currentBuffer = 1 - render.currentBuffer;
-}
+let canvas = null;
 
 let start = 0;
 function pump(timestamp)	{
@@ -88,19 +97,16 @@ function pump(timestamp)	{
   const dt = timestamp - start; // Time since previous frame
 
   if (dt > FPS_INTERVAL) {
-    start = timestamp - (dt % FPS_INTERVAL);
+    start = timestamp; // - (dt % FPS_INTERVAL);
 
-    const renderContext = { ctx: render.canvases[render.currentBuffer].getContext('2d'), dt, start };
+    const renderContext = { ctx: canvas.getContext('2d'), dt, start };
 
     if (player.health > 0) {
-      level.step(player, INPUT, renderContext, { x: 0, y: 0, width: WIDTH, height: HEIGHT - 30 });
-      hud.step(player, INPUT, renderContext, { x: 0, y: 570, width: WIDTH, height: HEIGHT - 570 });
+      level.step(player, INPUT, renderContext, { x: 0, y: 0, width: WIDTH, height: HEIGHT - 50 });
+      hud.step(player, INPUT, renderContext, { x: 0, y: 550, width: WIDTH, height: HEIGHT - 550 });
     } else {
       hiscores.step(player, INPUT, renderContext, { x: 0, y: 0, width: WIDTH, height: HEIGHT });
     }
-
-    // Show the drawn upon canvas
-    flip(render);
   }
   
   // loop the shit out of this function
@@ -109,9 +115,23 @@ function pump(timestamp)	{
 
 // --- Initialize the game ---
 
+function toggleFullscreen() {
+  const elem = document.getElementById('canvases');
+
+  if (!document.fullscreenElement) {
+    elem.requestFullscreen().catch(err => {
+      alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+    });
+  } else {
+    document.exitFullscreen();
+  }
+}
+
 document.addEventListener("DOMContentLoaded", function() {
   document.getElementById('start').addEventListener('click', function() {
     document.getElementById('instructions').style.display = 'none';
+    document.getElementById('background').style.visibility = 'visible';
+    document.getElementById('canvas').style.visibility = 'visible';
 
     const music = document.getElementById('music');
     music.play();
@@ -128,15 +148,19 @@ document.addEventListener("DOMContentLoaded", function() {
     // Add the player to the scene
     player.img = new Image();
     player.img.addEventListener('load', function() {
+      player.img.width /= 2;
+      player.img.height /= 2;
       player.position = {
-        x: Math.floor(Math.random() * (WIDTH - player.img.width / 2)),
-        y: Math.floor(Math.random() * (HEIGHT - player.img.height / 2))
+        x: Math.floor(Math.random() * (WIDTH - player.img.width)),
+        y: Math.floor(Math.random() * (HEIGHT - 50 - player.img.height)) // Mind the HUD
       };
     });
     player.img.src = 'player.png';
 
     // now, wait a second!
-    render.canvases = [document.getElementById('canvas1'), document.getElementById('canvas2')];
+    canvas = document.getElementById('canvas');
+    toggleFullscreen();
+
     window.requestAnimationFrame(pump);
   });
 });
@@ -177,8 +201,8 @@ https://creativecommons.org/licenses/by/4.0/
     </div>
   </div>
   <div id="canvases">
-    <canvas id="canvas1" width="800" height="600"></canvas>
-    <canvas id="canvas2" width="800" height="600"></canvas>
+    <img id="background" src="bg.png" width="800" height="600" />
+    <canvas id="canvas" width="800" height="600"></canvas>
   </div>
   <audio id="music" src="music_01.mp3"></audio>
 </body>

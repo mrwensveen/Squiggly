@@ -1,14 +1,23 @@
 function step(player, _input, { ctx }, area) {
   const { x, y, width, height } = area;
+  const top = y + 30;
 
   ctx.clearRect(x, y, width, height);
 
-  ctx.font = '18px bold Arial, Helvetica, sans-serif';
-  ctx.fillStyle = 'black';
+  ctx.font = 'bold 16px courier';
+  ctx.fillStyle = 'white';
   ctx.textBaseline = 'top';
-  ctx.fillText(`LEVEL: ${Math.floor(player.level)}`, 10 + x, 5 + y);
-  ctx.fillText(`SCORE: ${Math.floor(player.score)}`, 160 + x, 5 + y);
-  ctx.fillText(`HEALTH: ${Math.floor(player.health)}`, 310 + x, 5 + y);
+
+  ctx.fillText(Math.floor(player.score), 48 + x, top);
+
+  ctx.fillText(Math.floor(player.health), 224 + x, top);
+
+  if (player.powerup) {
+    ctx.drawImage(player.powerup.img, 400, top - 4, 24, 24);
+    ctx.fillText(Math.floor(player.powerup.value), 430, top);
+  }
+
+  ctx.fillText(Math.floor(player.level), 568 + x, top);
 }
 
 export default { step };

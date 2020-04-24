@@ -1,10 +1,24 @@
-import { mod } from './utils.js';
+import { mod, isRectangleCollision } from './utils.js';
 
 const SIZE = 50;
 const STARVATION = 0.15;
 const TAU = Math.PI * 2;
+const POWERUPS = [{ type: 'speed', src: 'pwr_spd.png', img: null }];
+
+// --- Initialization ---
+POWERUPS.forEach(p => {
+  if (!p.img) {
+    p.img = new Image();
+    p.img.addEventListener('load', () => {
+      p.img.width = 32;
+      p.img.height = 32;
+    });
+    p.img.src = p.src;
+  }
+});
 
 let snakes = [];
+let powerup = null;
 
 function step(player, input, { dt, ctx, start }, area) {
   const { x, y, width, height } = area;
@@ -21,10 +35,42 @@ function step(player, input, { dt, ctx, start }, area) {
   }
 
   ctx.clearRect(x, y, width, height);
+
+  // Remove or spawn powerup
+  if (powerup) {
+    if (Math.random() < timeScale * .001) {
+      powerup = null;
+    }
+  } else if (Math.random() < timeScale * .01) {
+    const p = POWERUPS[Math.floor(Math.random() * POWERUPS.length)];
+    powerup = {
+      value: 100,
+      position: {
+        x: Math.floor(Math.random() * (width - p.img.width)),
+        y: Math.floor(Math.random() * (height - p.img.height))
+      },
+      ...p
+    };
+  }
   
+  // Draw powerup
+  if (powerup) {
+    ctx.drawImage(powerup.img, powerup.position.x, powerup.position.y, powerup.img.width, powerup.img.height);
+  }
+
   // Move the player
   movePlayer(timeScale, player, input, area);
   player.score += timeScale * .5;
+
+  if (powerup && player.position) {
+    const poRect = { ...powerup.position, width: powerup.img.width, height: powerup.img.height };
+    const plRect = { ...player.position, width: player.img.width, height: player.img.height };
+
+    if (isRectangleCollision(poRect, plRect)) {
+      player.powerup = powerup;
+      powerup = null;
+    }
+  }
   
   for (let s = 0; s < snakes.length; s++) {
     const snake = snakes[s];
@@ -33,42 +79,8 @@ function step(player, input, { dt, ctx, start }, area) {
     // Move the snake
     moveSnake(timeScale, snake, player, area, start);
 
-    // Eat the player, if in range
-    const head = snake.path[snake.path.length - 1];
-    if (player.position &&
-      head.x > player.position.x &&
-      head.x < (player.position.x + player.img.width / 2) &&
-      head.y > player.position.y &&
-      head.y < (player.position.y + player.img.height / 2)
-    ) {
-      snake.size += SIZE;
-      
-      // TODO: Audio?
-      //document.getElementById('death').play();
-      
-      // If the snake gets too big, split it into two
-      if (snake.size > SIZE * 2) {
-        // Keep the front
-        snake.path = snake.path.slice(-SIZE);
-        snake.size = SIZE;
-        
-        // A new snake is born.
-        snakes.push({ v: { x: 0, y: 0 }, path: [head], size: SIZE, hue: mod(snake.hue + Math.floor(Math.random() * 90) - 45, 360) });
-      }
-      
-      // TODO: make this suck less
-      // Place the player at a random position
-      player.position = {
-        x: Math.floor(Math.random() * (width - player.img.width / 2)),
-        y: Math.floor(Math.random() * (height - player.img.height / 2))
-      };
-
-      player.health -= 10;
-
-      if (player.health <= 0) {
-        snakes = [];
-      }
-    }
+    // Bite the player, if in range
+    handleBite(snake, player, area);
     
     // Hunger games
     snake.size -= timeScale * STARVATION;
@@ -78,48 +90,99 @@ function step(player, input, { dt, ctx, start }, area) {
     }
 
     // Draw snake 
-    let currentPoint = snake.path[0];
-      
-    for (let i = 1; i < snake.path.length; i++) {
-      const nextPoint = snake.path[i];
-      ctx.beginPath();
-      ctx.moveTo(currentPoint.x + x, currentPoint.y + y);
-      ctx.lineTo(nextPoint.x + x, nextPoint.y + y);
-      
-      const stroke = `hsla(${snake.hue}, 100%,  50%, ${(i + 1) / snake.path.length})`;
-      ctx.strokeStyle = stroke;
-      ctx.lineWidth = 3;
-      ctx.lineCap = 'round';
-      ctx.stroke();
-      
-      currentPoint = nextPoint;
+    drawSnake(snake, ctx, area);
+  }
+
+  // Draw player
+  drawPlayer(player, ctx, area);
+}
+  
+function handleBite(snake, player, { width, height }) {
+  const head = snake.path[snake.path.length - 1];
+  const headRect = { ...head, width: 0, height: 0 };
+  const plRect = { ...player.position, width: player.img.width, height: player.img.height };
+
+  if (player.position && isRectangleCollision(headRect, plRect)) {
+    snake.size += SIZE;
+
+    // TODO: Audio?
+    //document.getElementById('death').play();
+    
+    // If the snake gets too big, split it into two
+    if (snake.size > SIZE * 2) {
+      // Keep the front
+      snake.path = snake.path.slice(-SIZE);
+      snake.size = SIZE;
+      // A new snake is born.
+      snakes.push({ v: { x: 0, y: 0 }, path: [head], size: SIZE, hue: mod(snake.hue + Math.floor(Math.random() * 90) - 45, 360) });
     }
 
-    // Draw player
-    if (player.position) {
-      ctx.drawImage(player.img, player.position.x + x, player.position.y + y, player.img.width / 2, player.img.height / 2);
+    // TODO: make this suck less
+    // Place the player at a random position
+    player.position = {
+      x: Math.floor(Math.random() * (width - player.img.width)),
+      y: Math.floor(Math.random() * (height - player.img.height))
+    };
+
+    player.health -= 10;
+    if (player.health <= 0) {
+      snakes = [];
     }
   }
 }
-  
+
+function drawSnake(snake, ctx, { x, y }) {
+  let currentPoint = snake.path[0];
+  for (let i = 1; i < snake.path.length; i++) {
+    const nextPoint = snake.path[i];
+
+    ctx.beginPath();
+    ctx.moveTo(currentPoint.x + x, currentPoint.y + y);
+    ctx.lineTo(nextPoint.x + x, nextPoint.y + y);
+
+    const stroke = `hsla(${snake.hue}, 100%,  50%, ${(i + 1) / snake.path.length})`;
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    currentPoint = nextPoint;
+  }
+}
+
+function drawPlayer(player, ctx, { x, y }) {
+  if (player.position) {
+    ctx.drawImage(player.img, player.position.x + x, player.position.y + y, player.img.width, player.img.height);
+  }
+}
+
 function movePlayer(timeScale, player, input, { width, height }) {
-  if (!player.position) return;
+  if (!player.position || !input.keys.some((value, index) => value && index >= 37 && index <= 40)) return;
 
   const diagonal = (input.keys[37] || input.keys[39]) && (input.keys[38] || input.keys[40]);
-  const speed = timeScale * 2.5 * (diagonal ? 1 : Math.SQRT2);
+
+  const boost = input.shift && player.powerup && player.powerup.type === 'speed';
+  const speed = timeScale * 2.5 * (diagonal ? 1 : Math.SQRT2) * (boost ? 2 : 1);
 
   // Left - right
   if (input.keys[37]) {
     player.position.x = Math.max(player.position.x - speed, 0);
   } else if (input.keys[39]) {
-    player.position.x = Math.min(player.position.x + speed, width - player.img.width / 2);
+    player.position.x = Math.min(player.position.x + speed, width - player.img.width);
   }
   
   // Up - down
   if (input.keys[38]) {
     player.position.y = Math.max(player.position.y - speed, 0);
   } else if (input.keys[40]) {
-    player.position.y = Math.min(player.position.y + speed, height - player.img.height / 2);
+    player.position.y = Math.min(player.position.y + speed, height - player.img.height);
+  }
+
+  if (boost) {
+    player.powerup.value -= timeScale * 2;
+    if (player.powerup.value <= 0) {
+      player.powerup = null;
+    }
   }
 }
 
@@ -145,7 +208,7 @@ function moveSnake(timeScale, snake, player, { width, height }, start) {
     }
     
     // Max speed
-    const maxSpeed = 5, minSpeed = 1;
+    const maxSpeed = 5, minSpeed = 2;
     snake.v.speed = Math.max(Math.min(snake.v.speed + Math.random() - .5, maxSpeed), minSpeed);
 
     // Constant speed
