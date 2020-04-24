@@ -5,16 +5,17 @@
 <link href='https://fonts.googleapis.com/css?family=Rubik Mono One' rel='stylesheet'>
 <style>
   body { background-color: #fff; }
-  canvas {
+  #canvases { position: relative; }
+  #canvases canvas {
     position: absolute;
     top: 0;
     left: 0;
     visibility: hidden;
-    border: 1px solid black;
-    background-image: url("bg.jpg");
-    background-size: cover;
   }
-  #canvases { position: relative; }
+  #canvases img {
+    visibility: hidden;
+    border: 1px solid black;
+  }
   #instructions { text-align: center; }
   .licenses pre { font-size: .8em; }
 </style>
@@ -88,13 +89,13 @@ function pump(timestamp)	{
   const dt = timestamp - start; // Time since previous frame
 
   if (dt > FPS_INTERVAL) {
-    start = timestamp - (dt % FPS_INTERVAL);
+    start = timestamp; // - (dt % FPS_INTERVAL);
 
     const renderContext = { ctx: render.canvases[render.currentBuffer].getContext('2d'), dt, start };
 
     if (player.health > 0) {
-      level.step(player, INPUT, renderContext, { x: 0, y: 0, width: WIDTH, height: HEIGHT - 30 });
-      hud.step(player, INPUT, renderContext, { x: 0, y: 570, width: WIDTH, height: HEIGHT - 570 });
+      level.step(player, INPUT, renderContext, { x: 0, y: 0, width: WIDTH, height: HEIGHT - 50 });
+      hud.step(player, INPUT, renderContext, { x: 0, y: 550, width: WIDTH, height: HEIGHT - 550 });
     } else {
       hiscores.step(player, INPUT, renderContext, { x: 0, y: 0, width: WIDTH, height: HEIGHT });
     }
@@ -112,6 +113,7 @@ function pump(timestamp)	{
 document.addEventListener("DOMContentLoaded", function() {
   document.getElementById('start').addEventListener('click', function() {
     document.getElementById('instructions').style.display = 'none';
+    document.getElementById('background').style.visibility = 'visible';
 
     const music = document.getElementById('music');
     music.play();
@@ -177,6 +179,7 @@ https://creativecommons.org/licenses/by/4.0/
     </div>
   </div>
   <div id="canvases">
+    <img id="background" src="bg.png" width="800" height="600" />
     <canvas id="canvas1" width="800" height="600"></canvas>
     <canvas id="canvas2" width="800" height="600"></canvas>
   </div>
