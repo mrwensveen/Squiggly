@@ -145,7 +145,7 @@ function moveSnake(timeScale, snake, player, { width, height }, start) {
     }
     
     // Max speed
-    const maxSpeed = 5, minSpeed = 1;
+    const maxSpeed = 5, minSpeed = 2;
     snake.v.speed = Math.max(Math.min(snake.v.speed + Math.random() - .5, maxSpeed), minSpeed);
 
     // Constant speed
