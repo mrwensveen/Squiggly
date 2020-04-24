@@ -28,7 +28,7 @@ function step(player, input, { ctx, start }, area) {
     ctx.font = '22px Rubik Mono One';
 
     scores.forEach((score, index) => {
-      const offsetY = index * 45 + 75;
+      const offsetY = index * 45 + 65;
       ctx.fillStyle = verticalGradient(ctx, offsetY, 30, 'red', 'black');
 
       // Blink or something
@@ -40,8 +40,8 @@ function step(player, input, { ctx, start }, area) {
     if (fetchedScores && !playerHiscore) {
       ctx.textBaseline = 'bottom';
       ctx.font = '30px Rubik Mono One';
-      ctx.fillStyle = verticalGradient(ctx, height - 40, 30, 'black', 'blue', 'white', 'blue', 'black', 'black');
-      ctx.fillText('PRESS SPACE TO TRY AGAIN', 75, height - 10);
+      ctx.fillStyle = verticalGradient(ctx, height - 80, 30, 'black', 'blue', 'white', 'blue', 'black', 'black');
+      ctx.fillText('PRESS SPACE TO TRY AGAIN', 75, height - 50);
 
       handleWait(player, input);
     }
