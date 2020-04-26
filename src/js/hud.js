@@ -13,7 +13,7 @@ function step(player, _input, { ctx }, area) {
   ctx.fillText(Math.floor(player.health), 224 + x, top);
 
   if (player.powerup) {
-    ctx.drawImage(player.powerup.img, 400, top - 4, 24, 24);
+    ctx.drawImage(player.powerup.img, 400, top - 4, 20, 20);
     ctx.fillText(Math.floor(player.powerup.value), 430, top);
   }
 
