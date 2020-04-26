@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <link href='https://fonts.googleapis.com/css?family=Rubik Mono One' rel='stylesheet'>
 <style>
-  body { background-color: #fff; }
+  body { background-color: #fff; font-family: Arial, Helvetica, sans-serif;}
   #canvases { position: relative; width: 800px; height: 600px; cursor: none; }
   #canvases canvas {
     position: absolute;
@@ -43,7 +43,7 @@ document.addEventListener("keydown", event => {
   if (event.isComposing || event.keyCode === 229) {
     return;
   }
-  
+
   if (event.key.startsWith("Shift")) {
     INPUT.shift = true;
   } else {
@@ -59,7 +59,7 @@ document.addEventListener("keyup", event => {
   if (event.isComposing || event.keyCode === 229) {
     return;
   }
-  
+
   if (event.key.startsWith("Shift")) {
     INPUT.shift = false;
   } else {
@@ -108,7 +108,7 @@ function pump(timestamp)	{
       hiscores.step(player, INPUT, renderContext, { x: 0, y: 0, width: WIDTH, height: HEIGHT });
     }
   }
-  
+
   // loop the shit out of this function
   window.requestAnimationFrame(pump);
 }
@@ -144,7 +144,7 @@ document.addEventListener("DOMContentLoaded", function() {
       music.load();
       music.play();
     }, false);
-    
+
     // Add the player to the scene
     player.img = new Image();
     player.img.addEventListener('load', function() {
@@ -154,22 +154,21 @@ document.addEventListener("DOMContentLoaded", function() {
         x: Math.floor(Math.random() * (WIDTH - player.img.width)),
         y: Math.floor(Math.random() * (HEIGHT - 50 - player.img.height)) // Mind the HUD
       };
+
+      canvas = document.getElementById('canvas');
+      toggleFullscreen();
+
+      window.requestAnimationFrame(pump);
     });
     player.img.src = 'player.png';
-
-    // now, wait a second!
-    canvas = document.getElementById('canvas');
-    toggleFullscreen();
-
-    window.requestAnimationFrame(pump);
   });
 });
 </script>
 </head>
 <body>
   <div id="instructions">
-    <p>Press the arrow keys to move the player. Escape the sandworms until they starve.</p>
-    <p>You monster.</p>
+    <p>Press the <strong>arrow keys</strong> to move the player and <strong>shift</strong> to use the speed boost.</p>
+    <p>Escape the sandworms until they starve.<br/>You monster.</p>
     <p>(You can only be bitten by the heads of the sandworms)</p>
     <button id="start">Start</button>
     <div class="licenses">

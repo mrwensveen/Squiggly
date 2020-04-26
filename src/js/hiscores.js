@@ -17,7 +17,7 @@ function step(player, input, { ctx, start }, area) {
         checkPlayerScore(player, input);
       });
   }
-  
+
   ctx.textBaseline = 'top';
   ctx.font = '30px Rubik Mono One';
 
