@@ -5,7 +5,7 @@
 <link href='https://fonts.googleapis.com/css?family=Rubik Mono One' rel='stylesheet'>
 <style>
   body { background-color: #fff; font-family: Arial, Helvetica, sans-serif;}
-  #canvases { position: relative; width: 800px; height: 600px; cursor: none; }
+  #canvases { position: relative; width: 800px; height: 600px; cursor: none; display: none; }
   #canvases canvas {
     position: absolute;
     top: 0;
@@ -130,6 +130,8 @@ function toggleFullscreen() {
 document.addEventListener("DOMContentLoaded", function() {
   document.getElementById('start').addEventListener('click', function() {
     document.getElementById('instructions').style.display = 'none';
+    document.getElementById('canvases').style.display = 'block';
+    
     document.getElementById('background').style.visibility = 'visible';
     document.getElementById('canvas').style.visibility = 'visible';
 
