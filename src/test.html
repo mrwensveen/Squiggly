@@ -1,0 +1,15 @@
+<html>
+    <head>
+        <title>Socket io client</title>
+        <script src="http://slapjanus:8081/socket.io/socket.io.js"></script>
+        <script>
+            var socket = io("http://slapjanus:8081");
+            // use your socket
+            socket.on("welcome", (message) => {
+                // do something with the message.
+            })
+        </script>
+    </head>
+    <body>
+    </body>
+</html>

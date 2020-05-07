@@ -9,3 +9,17 @@ services:
       - ./json-server:/data
       - ./src:/data/public
     restart: always
+
+  node:
+    image: "node:14"
+    user: "node"
+    working_dir: /home/node/app
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - ./squiggly-server:/home/node/app
+    ports:
+      - "8081:8081"
+    tty: yes
+    #command: "npm start"
+    #restart: always
