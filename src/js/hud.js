@@ -1,4 +1,5 @@
-function step(player, _input, { ctx }, area) {
+function step({player, renderContext }, area) {
+  const { ctx } = renderContext;
   const { x, y, width, height } = area;
   const top = y + 30;
 

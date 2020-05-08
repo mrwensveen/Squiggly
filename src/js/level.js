@@ -27,7 +27,8 @@ POWERUPS.forEach(p => {
 let snakes = [];
 let powerup = null;
 
-function step(player, input, { dt, ctx, start }, area) {
+function step({ player, input, renderContext, network }, area) {
+  const { dt, ctx, start } = renderContext;
   const { x, y, width, height } = area;
   const timeScale = dt / 70; // This is an arbitrary number that seems to work well.
 
@@ -66,8 +67,10 @@ function step(player, input, { dt, ctx, start }, area) {
     ctx.drawImage(powerup.img, powerup.position.x, powerup.position.y, powerup.img.width, powerup.img.height);
   }
 
+  const moveContext = { input, network };
+
   // Move the player
-  movePlayer(timeScale, player, input, area);
+  movePlayer(timeScale, player, moveContext, area);
   player.score += timeScale * .5;
 
   if (powerup) {
@@ -90,7 +93,7 @@ function step(player, input, { dt, ctx, start }, area) {
     if (!snake) continue;
 
     // Move the snake
-    moveSnake(timeScale, snake, player, area, start);
+    moveSnake(timeScale, snake, player, moveContext, area, start);
 
     // Bite the player, if in range
     handleBite(snake, player, area);
@@ -186,7 +189,7 @@ function drawPlayer(player, ctx, { x, y }) {
   }
 }
 
-function movePlayer(timeScale, player, input, { width, height }) {
+function movePlayer(timeScale, player, { input, network }, { width, height }) {
   if (player.powerup) {
     player.powerup.active = input.shift;
   }
@@ -194,6 +197,8 @@ function movePlayer(timeScale, player, input, { width, height }) {
   const diagonal = (input.keys[37] || input.keys[39]) && (input.keys[38] || input.keys[40]);
   const boost = player.powerup && player.powerup.type === 'speed' && player.powerup.active;
   const speed = timeScale * 2.5 * (diagonal ? 1 : Math.SQRT2) * (boost ? 2 : 1);
+
+  const originalPosition = { ...player.position };
 
   // Left - right
   if (input.keys[37]) {
@@ -209,6 +214,17 @@ function movePlayer(timeScale, player, input, { width, height }) {
     player.position.y = Math.min(player.position.y + speed, height - player.img.height);
   }
 
+  // Send the player's position to the network
+  if (
+    (originalPosition.x !== player.position.x || originalPosition.y !== player.position.y) &&
+    network && network.socket && network.socket.connected
+  ) {
+    network.socket.emit("p", { index: 0, position: player.position });
+  }
+
+
+  // TODO: Move to separate method
+  // Handle powerups
   if (player.powerup && player.powerup.active) {
     player.powerup.value -= timeScale * 2;
     if (player.powerup.value <= 0) {
@@ -221,7 +237,7 @@ function movePlayer(timeScale, player, input, { width, height }) {
   }
 }
 
-function moveSnake(timeScale, snake, player, { width, height }, start) {
+function moveSnake(timeScale, snake, player, { network }, { width, height }, start) {
   // Only allow to change direction once every n milliseconds
   if (start % 100 < 34) { //FPS_INTERVAL
 

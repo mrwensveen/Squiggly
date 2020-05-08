@@ -1,15 +1,37 @@
 <html>
-    <head>
-        <title>Socket io client</title>
-        <script src="http://slapjanus:8081/socket.io/socket.io.js"></script>
-        <script>
-            var socket = io("http://slapjanus:8081");
-            // use your socket
-            socket.on("welcome", (message) => {
-                // do something with the message.
-            })
-        </script>
-    </head>
-    <body>
-    </body>
+  <head>
+    <title>Socket io client</title>
+    <script>
+      const SOCKET_SERVER = `${window.location.protocol}//${window.location.hostname}:8081`;
+      {
+        const socketScriptElement = document.createElement('script');
+        socketScriptElement.setAttribute('src', `${SOCKET_SERVER}/socket.io/socket.io.js`);
+        document.head.appendChild(socketScriptElement);
+      }
+    </script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function() {
+        document.getElementById("join").addEventListener("click", function() {
+          const gameName = document.getElementById("game_name").value;
+
+          // Join the game room
+          const socket = io(SOCKET_SERVER, {
+            query: { room: gameName }
+          });
+          
+          const handleEvent = message => {
+            let textarea = document.getElementById('messages');
+            textarea.value += JSON.stringify(message) + '\n';
+            textarea.scrollTop = textarea.scrollHeight;
+          };
+
+          socket.on("p", handleEvent);
+        });
+      });
+    </script>
+  </head>
+  <body>
+    <input id="game_name" placeholder="Game name..."/><button id="join">Join</button><br/>
+    <textarea id="messages" placeholder="Messages..." cols="160" rows="60"></textarea>
+  </body>
 </html>

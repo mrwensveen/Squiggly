@@ -3,8 +3,10 @@ const BLINK = 750;
 let scores = null, fetchedScores = false;
 let playerHiscore = null;
 
-function step(player, input, { ctx, start }, area) {
+function step({ player, input, renderContext }, area) {
+  const { ctx, start } = renderContext;
   const { x, y, width, height } = area;
+  
   ctx.clearRect(x, y, width, height);
 
   if (!fetchedScores) {

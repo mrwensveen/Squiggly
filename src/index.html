@@ -22,6 +22,16 @@
   #instructions { text-align: center; }
   .licenses pre { font-size: .8em; }
 </style>
+<script>
+  const SOCKET_SERVER = `${window.location.protocol}//${window.location.hostname}:8081`;
+
+  {
+    const socketScriptElement = document.createElement('script');
+    socketScriptElement.setAttribute('src', `${SOCKET_SERVER}/socket.io/socket.io.js`);
+    document.head.appendChild(socketScriptElement);
+  }
+</script>
+
 <script type="module">
 
 import level from './js/level.js';
@@ -84,6 +94,11 @@ const player = {
   powerup: null
 };
 
+const network = {
+  socket: null,
+  master: true,
+};
+
 // --- Rendering stuff ---
 const FPS = 30;
 const FPS_INTERVAL = 1000 / FPS;
@@ -99,21 +114,24 @@ function pump(timestamp)	{
   if (dt > FPS_INTERVAL) {
     start = timestamp; // - (dt % FPS_INTERVAL);
 
-    const renderContext = { ctx: canvas.getContext('2d'), dt, start };
+    const context = {
+      network,
+      renderContext: { ctx: canvas.getContext('2d'), dt, start },
+      input: INPUT,
+      player
+    };
 
     if (player.health > 0) {
-      level.step(player, INPUT, renderContext, { x: 0, y: 0, width: WIDTH, height: HEIGHT - 50 });
-      hud.step(player, INPUT, renderContext, { x: 0, y: 550, width: WIDTH, height: HEIGHT - 550 });
+      level.step(context, { x: 0, y: 0, width: WIDTH, height: HEIGHT - 50 }); // context, area
+      hud.step(context, { x: 0, y: 550, width: WIDTH, height: HEIGHT - 550 });
     } else {
-      hiscores.step(player, INPUT, renderContext, { x: 0, y: 0, width: WIDTH, height: HEIGHT });
+      hiscores.step(context, { x: 0, y: 0, width: WIDTH, height: HEIGHT });
     }
   }
 
   // loop the shit out of this function
   window.requestAnimationFrame(pump);
 }
-
-// --- Initialize the game ---
 
 function toggleFullscreen() {
   const elem = document.getElementById('canvases');
@@ -127,42 +145,64 @@ function toggleFullscreen() {
   }
 }
 
+// --- Initialize the game ---
+
+function initialize() {
+  document.getElementById('instructions').style.display = 'none';
+  document.getElementById('canvases').style.display = 'block';
+
+  document.getElementById('background').style.visibility = 'visible';
+  document.getElementById('canvas').style.visibility = 'visible';
+
+  const music = document.getElementById('music');
+  music.play();
+
+  let track = 0;
+  music.addEventListener('ended', function() {
+    track = (track + 1) % 3; // 3 is the number of songs (so far)
+    let nextSong = `music_${(track + 1).toString().padStart(2, '0')}.mp3`;
+    music.src = nextSong;
+    music.load();
+    music.play();
+  }, false);
+
+  // Add the player to the scene
+  player.img = new Image();
+  player.img.addEventListener('load', function() {
+    player.img.width /= 2;
+    player.img.height /= 2;
+    player.position = {
+      x: Math.floor(Math.random() * (WIDTH - player.img.width)),
+      y: Math.floor(Math.random() * (HEIGHT - 50 - player.img.height)) // Mind the HUD
+    };
+
+    canvas = document.getElementById('canvas');
+    toggleFullscreen();
+
+    // Start the rendering pump on the next animation frame
+    window.requestAnimationFrame(pump);
+  });
+  player.img.src = 'player.png';
+}
+
 document.addEventListener("DOMContentLoaded", function() {
   document.getElementById('start').addEventListener('click', function() {
-    document.getElementById('instructions').style.display = 'none';
-    document.getElementById('canvases').style.display = 'block';
-    
-    document.getElementById('background').style.visibility = 'visible';
-    document.getElementById('canvas').style.visibility = 'visible';
 
-    const music = document.getElementById('music');
-    music.play();
+    // If the user put a value in the game_name field, connect to socket.io and join the room with that name
+    const gameName = document.getElementById('game_name').value;
+    if (gameName) {
+      // Connect to the socket server and join the game's room
+      const socket = io(SOCKET_SERVER, {
+        query: { room: gameName }
+      });
 
-    let track = 0;
-    music.addEventListener('ended', function() {
-      track = (track + 1) % 3; // 3 is the number of songs (so far)
-      let nextSong = `music_${(track + 1).toString().padStart(2, '0')}.mp3`;
-      music.src = nextSong;
-      music.load();
-      music.play();
-    }, false);
-
-    // Add the player to the scene
-    player.img = new Image();
-    player.img.addEventListener('load', function() {
-      player.img.width /= 2;
-      player.img.height /= 2;
-      player.position = {
-        x: Math.floor(Math.random() * (WIDTH - player.img.width)),
-        y: Math.floor(Math.random() * (HEIGHT - 50 - player.img.height)) // Mind the HUD
-      };
-
-      canvas = document.getElementById('canvas');
-      toggleFullscreen();
-
-      window.requestAnimationFrame(pump);
-    });
-    player.img.src = 'player.png';
+      socket.on("connect", () => {
+        network.socket = socket;
+        initialize();
+      });
+    } else {
+      initialize();
+    }
   });
 });
 </script>
@@ -172,6 +212,7 @@ document.addEventListener("DOMContentLoaded", function() {
     <p>Press the <strong>arrow keys</strong> to move the player and <strong>shift</strong> to use the speed boost.</p>
     <p>Escape the sandworms until they starve.<br/>You monster.</p>
     <p>(You can only be bitten by the heads of the sandworms)</p>
+    <p>Host/join multi-player game: <input id="game_name" placeholder="Game name..." /></p>
     <button id="start">Start</button>
     <div class="licenses">
 <!-- music_01.mp3 -->
