@@ -6,7 +6,7 @@ let playerHiscore = null;
 function step({ player, input, renderContext }, area) {
   const { ctx, start } = renderContext;
   const { x, y, width, height } = area;
-  
+
   ctx.clearRect(x, y, width, height);
 
   if (!fetchedScores) {
@@ -101,9 +101,9 @@ function handlePlayerScore(input) {
 }
 
 function handleWait(player, input) {
-  if (input.keyUpHandlers.has('handleWait')) return;
+  if (input.keyUpHandlers.has('hiscoreWait')) return;
 
-  const handlerIndex = input.keyUpHandlers.set('handleWait', event => {
+  input.keyUpHandlers.set('hiscoreWait', event => {
     if (event.code !== "Space") return;
 
     // TODO: Move this to a more logical place
@@ -115,7 +115,7 @@ function handleWait(player, input) {
     fetchedScores = false;
 
     // Remove the handler
-    input.keyUpHandlers.delete('handleWait');
+    input.keyUpHandlers.delete('hiscoreWait');
   });
 }
 

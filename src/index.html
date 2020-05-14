@@ -34,56 +34,23 @@
 
 <script type="module">
 
+import lobby from './js/lobby.js';
 import level from './js/level.js';
 import hud from './js/hud.js';
 import hiscores from './js/hiscores.js';
 
 // --- Player controls ---
 
-// TODO: Separate this into a module
-
-const INPUT = {
-  keys: [],
-  shift: false,
-  keyDownHandlers: new Map(),
-  keyUpHandlers: new Map()
-}
-
-document.addEventListener("keydown", event => {
-  if (event.isComposing || event.keyCode === 229) {
-    return;
-  }
-
-  if (event.key.startsWith("Shift")) {
-    INPUT.shift = true;
-  } else {
-    INPUT.keys[event.keyCode] = true;
-  }
-
-  if(INPUT.keyDownHandlers && INPUT.keyDownHandlers.size) {
-    INPUT.keyDownHandlers.forEach(h => h && h(event));
-  }
-});
-
-document.addEventListener("keyup", event => {
-  if (event.isComposing || event.keyCode === 229) {
-    return;
-  }
-
-  if (event.key.startsWith("Shift")) {
-    INPUT.shift = false;
-  } else {
-    delete INPUT.keys[event.keyCode];
-  }
-
-  if(INPUT.keyUpHandlers && INPUT.keyUpHandlers.size) {
-    INPUT.keyUpHandlers.forEach(h => h && h(event));
-  }
-});
+import INPUT from './js/input.js'
 
 // --- Game elements ---
 
 const WIDTH = 800, HEIGHT = 600;
+
+const network = {
+  socket: null,
+  master: true,
+};
 
 const player = {
   img: null,
@@ -91,12 +58,8 @@ const player = {
   health: window.location.hash === '#test' ? 10 : 100,
   score: 0,
   level: 0,
-  powerup: null
-};
-
-const network = {
-  socket: null,
-  master: true,
+  powerup: null,
+  ready: true
 };
 
 // --- Rendering stuff ---
@@ -121,7 +84,10 @@ function pump(timestamp)	{
       player
     };
 
-    if (player.health > 0) {
+    if (!player.ready) {
+      lobby.step(context, { x: 0, y: 0, width: WIDTH, height: HEIGHT - 50 }); // context, area
+    }
+    else if (player.health > 0) {
       level.step(context, { x: 0, y: 0, width: WIDTH, height: HEIGHT - 50 }); // context, area
       hud.step(context, { x: 0, y: 550, width: WIDTH, height: HEIGHT - 550 });
     } else {
@@ -198,6 +164,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
       socket.on("connect", () => {
         network.socket = socket;
+        player.ready = false;
+
         initialize();
       });
     } else {
