@@ -27,9 +27,12 @@ POWERUPS.forEach(p => {
 let snakes = [];
 let powerup = null;
 
-function step({ player, input, renderContext, network }, area) {
+function step(context, area) {
+  const { players, playerIndex, input, renderContext, network } = context;
   const { dt, ctx, start } = renderContext;
   const { x, y, width, height } = area;
+  const player = players[playerIndex];
+
   const timeScale = dt / 70; // This is an arbitrary number that seems to work well.
 
   // Proceed to first/next level when there are no snakes
@@ -67,10 +70,10 @@ function step({ player, input, renderContext, network }, area) {
     ctx.drawImage(powerup.img, powerup.position.x, powerup.position.y, powerup.img.width, powerup.img.height);
   }
 
-  const moveContext = { input, network };
-
   // Move the player
-  movePlayer(timeScale, player, moveContext, area);
+  const originalPosition = { ...player.position };
+
+  movePlayer(timeScale, player, input, area);
   player.score += timeScale * .5;
 
   if (powerup) {
@@ -88,12 +91,18 @@ function step({ player, input, renderContext, network }, area) {
     }
   }
 
+  // Draw all players
+  players.forEach(player => {
+    drawPlayer(player, ctx, area);
+  });
+
+  // Move and draw snakes
   for (let s = 0; s < snakes.length; s++) {
     const snake = snakes[s];
     if (!snake) continue;
 
     // Move the snake
-    moveSnake(timeScale, snake, player, moveContext, area, start);
+    moveSnake(timeScale, snake, player, area, start, network);
 
     // Bite the player, if in range
     handleBite(snake, player, area);
@@ -109,8 +118,25 @@ function step({ player, input, renderContext, network }, area) {
     drawSnake(snake, ctx, area);
   }
 
-  // Draw player
-  drawPlayer(player, ctx, area);
+  // Send the player's position to the network
+  if (
+    (originalPosition.x !== player.position.x || originalPosition.y !== player.position.y) &&
+    network && network.socket && network.socket.connected
+  ) {
+
+    const p = { index: playerIndex, position: player.position };
+
+    // If we're player 1 (host) then also send the snakes' positions
+    const message = playerIndex === 0 ? {
+      p,
+      s: snakes.map((snake, index) => ({
+        index,
+        position: snake.position
+      }))
+    } : { p };
+
+    network.socket.emit("p", message);
+  }
 }
 
 function handleBite(snake, player, { width, height }) {
@@ -189,7 +215,7 @@ function drawPlayer(player, ctx, { x, y }) {
   }
 }
 
-function movePlayer(timeScale, player, { input, network }, { width, height }) {
+function movePlayer(timeScale, player, input, { width, height }) {
   if (player.powerup) {
     player.powerup.active = input.shift;
   }
@@ -197,8 +223,6 @@ function movePlayer(timeScale, player, { input, network }, { width, height }) {
   const diagonal = (input.keys[37] || input.keys[39]) && (input.keys[38] || input.keys[40]);
   const boost = player.powerup && player.powerup.type === 'speed' && player.powerup.active;
   const speed = timeScale * 2.5 * (diagonal ? 1 : Math.SQRT2) * (boost ? 2 : 1);
-
-  const originalPosition = { ...player.position };
 
   // Left - right
   if (input.keys[37]) {
@@ -214,15 +238,6 @@ function movePlayer(timeScale, player, { input, network }, { width, height }) {
     player.position.y = Math.min(player.position.y + speed, height - player.img.height);
   }
 
-  // Send the player's position to the network
-  if (
-    (originalPosition.x !== player.position.x || originalPosition.y !== player.position.y) &&
-    network && network.socket && network.socket.connected
-  ) {
-    network.socket.emit("p", { index: 0, position: player.position });
-  }
-
-
   // TODO: Move to separate method
   // Handle powerups
   if (player.powerup && player.powerup.active) {
@@ -237,7 +252,7 @@ function movePlayer(timeScale, player, { input, network }, { width, height }) {
   }
 }
 
-function moveSnake(timeScale, snake, player, { network }, { width, height }, start) {
+function moveSnake(timeScale, snake, player, { width, height }, start, network) {
   // Only allow to change direction once every n milliseconds
   if (start % 100 < 34) { //FPS_INTERVAL
 

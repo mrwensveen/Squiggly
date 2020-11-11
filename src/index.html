@@ -45,22 +45,16 @@ import INPUT from './js/input.js'
 
 // --- Game elements ---
 
+let playerIndex = 0;
+
 const WIDTH = 800, HEIGHT = 600;
 
-const network = {
+const NETWORK = {
   socket: null,
   master: true,
 };
 
-const player = {
-  img: null,
-  position: null,
-  health: window.location.hash === '#test' ? 10 : 100,
-  score: 0,
-  level: 0,
-  powerup: null,
-  ready: true
-};
+const PLAYERS = [];
 
 // --- Rendering stuff ---
 const FPS = 30;
@@ -78,16 +72,17 @@ function pump(timestamp)	{
     start = timestamp; // - (dt % FPS_INTERVAL);
 
     const context = {
-      network,
+      network: NETWORK,
       renderContext: { ctx: canvas.getContext('2d'), dt, start },
       input: INPUT,
-      player
+      players: PLAYERS,
+      playerIndex
     };
 
-    if (!player.ready) {
+    if (PLAYERS.some(player => !player.ready)) {
       lobby.step(context, { x: 0, y: 0, width: WIDTH, height: HEIGHT - 50 }); // context, area
     }
-    else if (player.health > 0) {
+    else if (PLAYERS.some(player => player.health > 0)) {
       level.step(context, { x: 0, y: 0, width: WIDTH, height: HEIGHT - 50 }); // context, area
       hud.step(context, { x: 0, y: 550, width: WIDTH, height: HEIGHT - 550 });
     } else {
@@ -113,7 +108,7 @@ function toggleFullscreen() {
 
 // --- Initialize the game ---
 
-function initialize() {
+function initializeAndStart(beforeStart = player => {}) {
   document.getElementById('instructions').style.display = 'none';
   document.getElementById('canvases').style.display = 'block';
 
@@ -132,11 +127,25 @@ function initialize() {
     music.play();
   }, false);
 
-  // Add the player to the scene
-  player.img = new Image();
+  // Initialize the player
+  const player = {
+    img: new Image(),
+    position: null,
+    health: window.location.hash === '#test' ? 10 : 100,
+    score: 0,
+    level: 0,
+    powerup: null,
+    ready: true
+  };
+
+  PLAYERS.push(player);
+
   player.img.addEventListener('load', function() {
+    // TODO: Don't scale the player sprite.
+    // Scale the player sprite
     player.img.width /= 2;
     player.img.height /= 2;
+
     player.position = {
       x: Math.floor(Math.random() * (WIDTH - player.img.width)),
       y: Math.floor(Math.random() * (HEIGHT - 50 - player.img.height)) // Mind the HUD
@@ -144,6 +153,9 @@ function initialize() {
 
     canvas = document.getElementById('canvas');
     toggleFullscreen();
+
+    // Allow for changes just before starting
+    beforeStart(player);
 
     // Start the rendering pump on the next animation frame
     window.requestAnimationFrame(pump);
@@ -164,12 +176,17 @@ document.addEventListener("DOMContentLoaded", function() {
 
       socket.on("connect", () => {
         network.socket = socket;
-        player.ready = false;
-
-        initialize();
       });
+
+      socket.on("welcome", data => {
+        playerIndex = Number.parseInt(data);
+
+        initializeAndStart(player => player.ready = false);
+      });
+
+
     } else {
-      initialize();
+      initializeAndStart();
     }
   });
 });

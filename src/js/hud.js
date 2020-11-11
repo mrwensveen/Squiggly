@@ -1,6 +1,9 @@
-function step({player, renderContext }, area) {
+function step(context, area) {
+  const { players, playerIndex, renderContext } = context;
   const { ctx } = renderContext;
   const { x, y, width, height } = area;
+  const player = players[playerIndex];
+
   const top = y + 30;
 
   ctx.clearRect(x, y, width, height);
