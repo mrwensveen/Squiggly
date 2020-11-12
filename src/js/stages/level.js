@@ -74,11 +74,10 @@ function step(context, area) {
   }
 
   // Move the player
-  const originalPosition = { ...player.position };
-
   movePlayer(timeScale, player, input, area);
   player.score += timeScale * .5;
 
+  // Pick up a powerup?
   if (powerup) {
     const poRect = { ...powerup.position, width: powerup.img.width, height: powerup.img.height };
     const plRect = { ...player.position, width: player.img.width, height: player.img.height };
@@ -107,7 +106,9 @@ function step(context, area) {
     if (!snake) continue;
 
     // Move the snake
-    moveSnake(timeScale, snake, player, area, start);
+    if (network.isHost) {
+      moveSnake(timeScale, snake, player, area, start);
+    }
 
     // Bite the player, if in range
     handleBite(snake, player, area);
@@ -124,12 +125,7 @@ function step(context, area) {
   }
 
   // Send the player's position to the network
-
-  // if (
-  //   (originalPosition.x !== player.position.x || originalPosition.y !== player.position.y) &&
-  //   network && network.socket && network.socket.connected
-  // ) {
-  if (network && network.socket && network.socket.connected) {
+  if (network?.socket?.connected) {
     const p = { i: network.clientIndex, position: player.position };
 
     // If we're player 1 (host) then also send the snakes' positions
@@ -260,10 +256,32 @@ function moveSnake(timeScale, snake, player, { width, height }, start) {
   }
 
   // Add the new point to the head of the snake
+  moveSnakeHead(snake, newPoint);
+}
+
+function moveSnakeHead(snake, newPoint) {
   snake.path.push(newPoint);
   while (snake.path.length > snake.size) {
     snake.path.shift();
   }
 }
 
-export default { step }
+function handleSocketEvent(event, data, network) {
+  if (!network.isHost && event === "step" && data?.s?.length) {
+    data.s.forEach(remoteSnake => {
+      if(!snakes[remoteSnake.i]) {
+        snakes[remoteSnake.i] = {
+          path: [remoteSnake.position],
+          size: SIZE,
+          hue: Math.floor(Math.random() * 360) // TODO: sync?
+        };
+      } else {
+        const snake = snakes[remoteSnake.i];
+        moveSnakeHead(snake, remoteSnake.position);
+      }
+    });
+  }
+}
+
+export default { step, handleSocketEvent }
+

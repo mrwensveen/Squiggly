@@ -58,7 +58,23 @@ const NETWORK = {
 
 const PLAYERS = [];
 
+// --- Network stuff ---
+
+let onSocketEvent = null;
+
+// combined level and hud socket event
+function levelSocketEvent(event, data, network) {
+  level.handleSocketEvent?.call(null, event, data, network);
+  hud.handleSocketEvent?.call(null, event, data, network);
+};
+
+function announce() {
+  const player = PLAYERS[NETWORK.clientIndex];
+  NETWORK.socket.emit("announce", { i: NETWORK.clientIndex, remoteId: NETWORK.socket.id, position: player.position, ready: player.ready });
+}
+
 // --- Rendering stuff ---
+
 const FPS = 30;
 const FPS_INTERVAL = 1000 / FPS;
 
@@ -80,14 +96,19 @@ function pump(timestamp)	{
       players: PLAYERS
     };
 
+    // Game phases: lobby, level + hud, hiscores
+
     if (PLAYERS.some(player => player && !player.ready)) {
       lobby.step(context, { x: 0, y: 0, width: WIDTH, height: HEIGHT - 50 }); // context, area
+      onSocketEvent = lobby.handleSocketEvent;
     }
     else if (PLAYERS.some(player => player && player.health > 0)) {
       level.step(context, { x: 0, y: 0, width: WIDTH, height: HEIGHT - 50 }); // context, area
       hud.step(context, { x: 0, y: 550, width: WIDTH, height: HEIGHT - 550 });
+      onSocketEvent = levelSocketEvent;
     } else {
       hiscores.step(context, { x: 0, y: 0, width: WIDTH, height: HEIGHT });
+      onSocketEvent = hiscores.handleSocketEvent;
     }
   }
 
@@ -105,13 +126,6 @@ function toggleFullscreen() {
   } else {
     document.exitFullscreen();
   }
-}
-
-// --- Network stuff ---
-
-function announce() {
-  const player = PLAYERS[NETWORK.clientIndex];
-  NETWORK.socket.emit("announce", { i: NETWORK.clientIndex, remoteId: NETWORK.socket.id, position: player.position, ready: player.ready });
 }
 
 // --- Initialize the game ---
@@ -196,7 +210,7 @@ document.addEventListener("DOMContentLoaded", function() {
         console.log("leave", data);
 
         // Remove the leaving player from the game
-        const index = PLAYERS.findIndex(p => p.remoteId === data);
+        const index = PLAYERS.findIndex(p => p?.remoteId === data);
         if (index > -1) {
           PLAYERS[index] = undefined;
         }
@@ -246,6 +260,10 @@ document.addEventListener("DOMContentLoaded", function() {
           }
         }
       });
+
+      socket.onAny((event, data) => {
+        onSocketEvent?.call(null, event, data, NETWORK);
+      })
     } else {
       initializeAndStart();
     }
