@@ -46,11 +46,12 @@ import INPUT from './js/input.js'
 
 // --- Game elements ---
 
-let clientIndex = 0;
+let new_player = null;
 
 const WIDTH = 800, HEIGHT = 600;
 
 const NETWORK = {
+  clientIndex: 0,
   socket: null,
   isHost: true,
 };
@@ -76,14 +77,13 @@ function pump(timestamp)	{
       network: NETWORK,
       renderContext: { ctx: canvas.getContext('2d'), dt, start },
       input: INPUT,
-      players: PLAYERS,
-      clientIndex
+      players: PLAYERS
     };
 
-    if (PLAYERS.some(player => !player.ready)) {
+    if (PLAYERS.some(player => player && !player.ready)) {
       lobby.step(context, { x: 0, y: 0, width: WIDTH, height: HEIGHT - 50 }); // context, area
     }
-    else if (PLAYERS.some(player => player.health > 0)) {
+    else if (PLAYERS.some(player => player && player.health > 0)) {
       level.step(context, { x: 0, y: 0, width: WIDTH, height: HEIGHT - 50 }); // context, area
       hud.step(context, { x: 0, y: 550, width: WIDTH, height: HEIGHT - 550 });
     } else {
@@ -107,6 +107,13 @@ function toggleFullscreen() {
   }
 }
 
+// --- Network stuff ---
+
+function announce() {
+  const player = PLAYERS[NETWORK.clientIndex];
+  NETWORK.socket.emit("announce", { i: NETWORK.clientIndex, remoteId: NETWORK.socket.id, position: player.position, ready: player.ready });
+}
+
 // --- Initialize the game ---
 
 function initializeAndStart(beforeStart = player => {}) {
@@ -117,7 +124,7 @@ function initializeAndStart(beforeStart = player => {}) {
   document.getElementById('canvas').style.visibility = 'visible';
 
   const music = document.getElementById('music');
-  //music.play();
+  music.play();
 
   let track = 0;
   music.addEventListener('ended', function() {
@@ -130,6 +137,28 @@ function initializeAndStart(beforeStart = player => {}) {
 
   // Initialize the player
   const player = {
+    ...new_player,
+    position: {
+      x: Math.floor(Math.random() * (WIDTH - new_player.img.width)),
+      y: Math.floor(Math.random() * (HEIGHT - 50 - new_player.img.height)) // Mind the HUD
+    }
+  };
+
+  PLAYERS[NETWORK.clientIndex] = player;
+
+  canvas = document.getElementById('canvas');
+  toggleFullscreen();
+
+  // Allow for changes just before starting
+  beforeStart(player);
+
+  // Start the rendering pump on the next animation frame
+  window.requestAnimationFrame(pump);
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+
+  new_player = {
     img: new Image(),
     position: null,
     health: window.location.hash === '#test' ? 10 : 100,
@@ -139,32 +168,14 @@ function initializeAndStart(beforeStart = player => {}) {
     ready: true
   };
 
-  PLAYERS[clientIndex] = player;
-
-  player.img.addEventListener('load', function() {
+  new_player.img.addEventListener('load', function() {
     // TODO: Don't scale the player sprite.
     // Scale the player sprite
-    player.img.width /= 2;
-    player.img.height /= 2;
-
-    player.position = {
-      x: Math.floor(Math.random() * (WIDTH - player.img.width)),
-      y: Math.floor(Math.random() * (HEIGHT - 50 - player.img.height)) // Mind the HUD
-    };
-
-    canvas = document.getElementById('canvas');
-    //toggleFullscreen();
-
-    // Allow for changes just before starting
-    beforeStart(player);
-
-    // Start the rendering pump on the next animation frame
-    window.requestAnimationFrame(pump);
+    new_player.img.width /= 2;
+    new_player.img.height /= 2;
   });
-  player.img.src = 'player.png';
-}
+  new_player.img.src = 'player.png';
 
-document.addEventListener("DOMContentLoaded", function() {
   document.getElementById('start').addEventListener('click', function() {
 
     // If the user put a value in the game_name field, connect to socket.io and join the room with that name
@@ -175,42 +186,65 @@ document.addEventListener("DOMContentLoaded", function() {
         query: { room: gameName }
       });
 
+      // -- Server events --
+
       socket.on("connect", () => {
         NETWORK.socket = socket;
       });
 
+      socket.on("leave", data => {
+        console.log("leave", data);
+
+        // Remove the leaving player from the game
+        const index = PLAYERS.findIndex(p => p.remoteId === data);
+        if (index > -1) {
+          PLAYERS[index] = undefined;
+        }
+      });
+
       socket.on("welcome", data => {
         console.log("welcome", data);
-        clientIndex = Number.parseInt(data);
 
-        NETWORK.isHost = clientIndex === 0;
+        NETWORK.clientIndex = Number.parseInt(data);
+        NETWORK.isHost = NETWORK.clientIndex === 0;
+
         initializeAndStart(player => {
           player.ready = false;
 
           // Announce your initial position
-          socket.emit("announce", { i: clientIndex, position: player.position });
+          announce();
         });
       });
+
+      // -- Game client events --
 
       socket.on("announce", data => {
         console.log("announce", data);
 
         // A challenger has arrived!
-        const {i: remoteIndex, ...remotePlayer} = data;
+        const {i: remoteClientIndex, ...remotePlayerData} = data;
 
         // Add the remote player to the PLAYERS array
-        if (!PLAYERS[remoteIndex]) {
-          // Create a copy of the local player and set any remote player data
-          const localPlayer = PLAYERS[clientIndex];
-          PLAYERS[remoteIndex] = { ...localPlayer, ...remotePlayer};
+        if (!PLAYERS[remoteClientIndex]) {
+          PLAYERS[remoteClientIndex] = {
+            ...new_player,
+            ...remotePlayerData
+          };
 
-          // Announce your initial position to the new player
-          socket.emit("announce", { i: clientIndex, position: localPlayer.position });
+          // Announce your position to the new player
+          announce();
         }
       });
 
       socket.on("step", data => {
-        console.log("step", data);
+        if (data && data.p) {
+          const {i: remoteClientIndex, ...remotePlayerData} = data.p;
+          const player = PLAYERS[remoteClientIndex];
+
+          if(player) {
+            Object.assign(player, remotePlayerData);
+          }
+        }
       });
     } else {
       initializeAndStart();

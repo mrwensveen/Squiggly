@@ -1,10 +1,10 @@
 import * as playerSprite from '../sprites/player.js';
 
 function step(context, area) {
-  const { players, clientIndex, input, renderContext } = context;
+  const { players, input, renderContext, network } = context;
   const { ctx } = renderContext;
   const { x, y, width, height } = area;
-  const player = players[clientIndex];
+  const player = players[network.clientIndex];
 
   ctx.clearRect(x, y, width, height);
 
@@ -17,20 +17,33 @@ function step(context, area) {
 
   ctx.textBaseline = 'top';
   ctx.font = '30px Rubik Mono One';
+  ctx.fillStyle = 'black';
 
-  ctx.fillText('WAIT FOR OTHER PLAYERS...', 75, 10);
-  ctx.fillText('OR PRESS SPACE TO START', 75, height - 50);
+  ctx.fillText('WAITING FOR OTHER PLAYERS...', 75, 10);
 
-  handleWait(player, input);
+  if (player.ready) {
+    ctx.fillText('READY!', 75, height - 50);
+  } else {
+    ctx.fillText('PRESS SPACE WHEN READY', 75, height - 50);
+  }
+
+  handleWait(player, input, network);
 }
 
-function handleWait(player, input) {
+function handleWait(player, input, network) {
   if (!player || input.keyUpHandlers.has('lobbyWait')) return;
 
   input.keyUpHandlers.set('lobbyWait', event => {
     if (event.code !== "Space") return;
 
     player.ready = true;
+
+    if (network && network.socket && network.socket.connected) {
+      const p = { i: network.clientIndex, ready: player.ready };
+      const message = { p };
+
+      network.socket.emit("step", message);
+    }
 
     // Remove the handler
     input.keyUpHandlers.delete('lobbyWait');

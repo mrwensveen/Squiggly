@@ -31,15 +31,15 @@ let snakes = [];
 let powerup = null;
 
 function step(context, area) {
-  const { players, clientIndex, input, renderContext, network } = context;
+  const { players, input, renderContext, network } = context;
   const { dt, ctx, start } = renderContext;
   const { x, y, width, height } = area;
-  const player = players[clientIndex];
+  const player = players[network.clientIndex];
 
   const timeScale = dt / 70; // This is an arbitrary number that seems to work well.
 
   // Proceed to first/next level when there are no snakes
-  if (players.every(p => p.ready) && snakes.filter(Boolean).length === 0) {
+  if (network.isHost && !players.some(p => p && !p.ready) && snakes.filter(Boolean).length === 0) {
     snakes = Array(++player.level * 2).fill(0).map(() => ({
       v: { direction: Math.random() * TAU, speed: 3 },
       path: [{ x: Math.floor(Math.random() * width), y: Math.floor(Math.random() * height) }],
@@ -95,8 +95,10 @@ function step(context, area) {
   }
 
   // Draw all players
-  players.forEach(player => {
-    playerSprite.draw(player, ctx, area);
+  players.forEach(p => {
+    if (p && p.position) {
+      playerSprite.draw(p, ctx, area);
+    }
   });
 
   // Move and draw snakes
@@ -127,15 +129,15 @@ function step(context, area) {
   //   (originalPosition.x !== player.position.x || originalPosition.y !== player.position.y) &&
   //   network && network.socket && network.socket.connected
   // ) {
-  if ( network && network.socket && network.socket.connected) {
-    const p = { i: clientIndex, position: player.position };
+  if (network && network.socket && network.socket.connected) {
+    const p = { i: network.clientIndex, position: player.position };
 
     // If we're player 1 (host) then also send the snakes' positions
     const message = network.isHost ? {
       p,
       s: snakes.map((snake, i) => ({
         i,
-        pos: snake ? snake.path[snake.path.length - 1] : { x: -1, y: -1 } // The snake is dead when x and y are -1
+        position: snake?.path[snake.path.length - 1]
       }))
     } : { p };
 

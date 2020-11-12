@@ -8,10 +8,12 @@ server.use((socket, next) => {
 });
 
 server.on("connection", socket => {
-  console.log("user connected");
+  console.log("user connected", socket.id);
 
-  socket.on("disconnect", () => {
+  socket.on("disconnecting", () => {
     console.log("user disconnected");
+
+    broadcast(socket, "leave", socket.id);
   });
 
   const query = socket.handshake.query;
@@ -24,7 +26,7 @@ server.on("connection", socket => {
     // Current clients in the room
     server.to(query.room).allSockets().then(clients => {
       // Ready, player 0 (zero-indexed)
-      socket.emit('welcome', clients.size - 1);
+      socket.emit("welcome", clients.size - 1);
       console.log(clients);
     });
   }
