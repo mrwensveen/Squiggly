@@ -35,10 +35,10 @@
 
 <script type="module">
 
-import lobby from './js/lobby.js';
-import level from './js/level.js';
-import hud from './js/hud.js';
-import hiscores from './js/hiscores.js';
+import lobby from './js/stages/lobby.js';
+import level from './js/stages/level.js';
+import hud from './js/stages/hud.js';
+import hiscores from './js/stages/hiscores.js';
 
 // --- Player controls ---
 
@@ -52,7 +52,7 @@ const WIDTH = 800, HEIGHT = 600;
 
 const NETWORK = {
   socket: null,
-  master: true,
+  isHost: true,
 };
 
 const PLAYERS = [];

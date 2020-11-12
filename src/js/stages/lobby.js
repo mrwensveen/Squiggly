@@ -1,3 +1,5 @@
+import * as playerSprite from '../sprites/player.js';
+
 function step(context, area) {
   const { players, playerIndex, input, renderContext } = context;
   const { ctx } = renderContext;
@@ -5,6 +7,8 @@ function step(context, area) {
   const player = players[playerIndex];
 
   ctx.clearRect(x, y, width, height);
+
+  playerSprite.draw(player, ctx, area);
 
   ctx.textBaseline = 'top';
   ctx.font = '30px Rubik Mono One';

@@ -1,4 +1,7 @@
-import * as utils from './utils.js';
+import * as utils from '../utils.js';
+import * as snakeSprite from '../sprites/snake.js';
+import * as playerSprite from '../sprites/player.js';
+import * as powerupSprite from '../sprites/powerup.js';
 
 const SIZE = 50;
 const STARVATION = 0.15;
@@ -36,7 +39,7 @@ function step(context, area) {
   const timeScale = dt / 70; // This is an arbitrary number that seems to work well.
 
   // Proceed to first/next level when there are no snakes
-  if (snakes.filter(Boolean).length === 0) {
+  if (players.every(p => p.ready) && snakes.filter(Boolean).length === 0) {
     snakes = Array(++player.level * 2).fill(0).map(() => ({
       v: { direction: Math.random() * TAU, speed: 3 },
       path: [{ x: Math.floor(Math.random() * width), y: Math.floor(Math.random() * height) }],
@@ -67,7 +70,7 @@ function step(context, area) {
 
   // Draw powerup
   if (powerup) {
-    ctx.drawImage(powerup.img, powerup.position.x, powerup.position.y, powerup.img.width, powerup.img.height);
+    powerupSprite.draw(powerup, ctx, area);
   }
 
   // Move the player
@@ -93,7 +96,7 @@ function step(context, area) {
 
   // Draw all players
   players.forEach(player => {
-    drawPlayer(player, ctx, area);
+    playerSprite.draw(player, ctx, area);
   });
 
   // Move and draw snakes
@@ -115,7 +118,7 @@ function step(context, area) {
     }
 
     // Draw snake
-    drawSnake(snake, ctx, area);
+    snakeSprite.draw(snake, ctx, area);
   }
 
   // Send the player's position to the network
@@ -125,14 +128,14 @@ function step(context, area) {
   //   network && network.socket && network.socket.connected
   // ) {
   if ( network && network.socket && network.socket.connected) {
-    const p = { index: playerIndex, position: player.position };
+    const p = { i: playerIndex, pos: player.position };
 
     // If we're player 1 (host) then also send the snakes' positions
-    const message = playerIndex === 0 ? {
+    const message = network.isHost ? {
       p,
-      s: snakes.map((snake, index) => ({
-        index,
-        head: snake ? snake.path[snake.path.length - 1] : { x: -1, y: -1 } // The snake is dead when x and y are -1
+      s: snakes.map((snake, i) => ({
+        i,
+        pos: snake ? snake.path[snake.path.length - 1] : { x: -1, y: -1 } // The snake is dead when x and y are -1
       }))
     } : { p };
 
@@ -171,48 +174,6 @@ function handleBite(snake, player, { width, height }) {
     if (player.health <= 0) {
       snakes = [];
     }
-  }
-}
-
-function drawSnake(snake, ctx, { x, y }) {
-  let currentPoint = snake.path[0];
-  for (let i = 1; i < snake.path.length; i++) {
-    const nextPoint = snake.path[i];
-
-    ctx.beginPath();
-    ctx.moveTo(currentPoint.x + x, currentPoint.y + y);
-    ctx.lineTo(nextPoint.x + x, nextPoint.y + y);
-
-    const stroke = `hsla(${snake.hue}, 100%,  50%, ${(i + 1) / snake.path.length})`;
-    ctx.strokeStyle = stroke;
-    ctx.lineWidth = 3;
-    ctx.lineCap = 'round';
-    ctx.stroke();
-
-    currentPoint = nextPoint;
-  }
-}
-
-function drawPlayer(player, ctx, { x, y }) {
-  if (!player.position) return;
-
-  ctx.drawImage(player.img, player.position.x + x, player.position.y + y, player.img.width, player.img.height);
-
-  if (player.powerup && player.powerup.type === 'shield' && player.powerup.active) {
-    const center = utils.playerCenter(player);
-
-    const shieldGradient = ctx.createRadialGradient(center.x, center.y, 0, center.x, center.y, 100);
-    shieldGradient.addColorStop(0, 'transparent');
-    shieldGradient.addColorStop(.9, 'rgba(0, 127, 255, .3)');
-    shieldGradient.addColorStop(1, 'transparent');
-
-    ctx.fillStyle = shieldGradient;
-    ctx.fillRect(center.x - 100, center.y - 100, 200, 200);
-
-    ctx.save();
-    ctx.globalAlpha = .3;
-    ctx.drawImage(player.powerup.img, center.x - player.powerup.value, center.y - player.powerup.value, player.powerup.value * 2, player.powerup.value * 2);
-    ctx.restore();
   }
 }
 
