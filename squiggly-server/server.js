@@ -1,6 +1,6 @@
-const io = require("socket.io");
-
-const server = io.listen(8081);
+const server = require("socket.io")(8081, {
+  cors: { origins: '*' }
+});
 
 server.use((socket, next) => {
   if (socket.handshake.query.room) return next();
@@ -22,18 +22,19 @@ server.on("connection", socket => {
     socket.join(query.room);
 
     // Current clients in the room
-    server.to(query.room).clients((error, clients) => {
-      if (error) throw error;
-
-      socket.emit('welcome', clients.length);
+    server.to(query.room).allSockets().then(clients => {
+      // Ready, player 0 (zero-indexed)
+      socket.emit('welcome', clients.size - 1);
       console.log(clients);
     });
   }
 
   socket.on("p", data => {
     // Broadcast the event to everyone in the room (except the sending socket)
-    Object.keys(socket.rooms).filter(room => room !== socket.id).forEach(room => {
-      socket.volatile.to(room).emit("p", data);
+    socket.rooms.forEach(room => {
+      if (room !== socket.id) {
+        socket.broadcast.volatile.to(room).emit("p", data);
+      }
     });
   });
 });

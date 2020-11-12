@@ -1,6 +1,8 @@
-function step({ player, input, renderContext }, area) {
+function step(context, area) {
+  const { players, playerIndex, input, renderContext } = context;
   const { ctx } = renderContext;
   const { x, y, width, height } = area;
+  const player = players[playerIndex];
 
   ctx.clearRect(x, y, width, height);
 
@@ -14,7 +16,7 @@ function step({ player, input, renderContext }, area) {
 }
 
 function handleWait(player, input) {
-  if (input.keyUpHandlers.has('lobbyWait')) return;
+  if (!player || input.keyUpHandlers.has('lobbyWait')) return;
 
   input.keyUpHandlers.set('lobbyWait', event => {
     if (event.code !== "Space") return;

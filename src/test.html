@@ -11,27 +11,32 @@
     </script>
     <script>
       document.addEventListener("DOMContentLoaded", function() {
+        const textarea = document.getElementById('messages');
+        textarea.value = '';
+
         document.getElementById("join").addEventListener("click", function() {
+          textarea.value = '';
           const gameName = document.getElementById("game_name").value;
 
           // Join the game room
           const socket = io(SOCKET_SERVER, {
             query: { room: gameName }
           });
-          
-          const handleEvent = message => {
-            let textarea = document.getElementById('messages');
-            textarea.value += JSON.stringify(message) + '\n';
-            textarea.scrollTop = textarea.scrollHeight;
+
+          const handleEvent = (event, ...data) => {
+            // textarea.value += JSON.stringify(message) + '\n';
+            // textarea.scrollTop = textarea.scrollHeight;
+
+            textarea.value = `${event} ${JSON.stringify(data)}`;
           };
 
-          socket.on("p", handleEvent);
+          socket.onAny(handleEvent);
         });
       });
     </script>
   </head>
   <body>
     <input id="game_name" placeholder="Game name..."/><button id="join">Join</button><br/>
-    <textarea id="messages" placeholder="Messages..." cols="160" rows="60"></textarea>
+    <textarea id="messages" placeholder="Messages..." cols="80" rows="10"></textarea>
   </body>
 </html>

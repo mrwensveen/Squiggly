@@ -102,7 +102,7 @@ function step(context, area) {
     if (!snake) continue;
 
     // Move the snake
-    moveSnake(timeScale, snake, player, area, start, network);
+    moveSnake(timeScale, snake, player, area, start);
 
     // Bite the player, if in range
     handleBite(snake, player, area);
@@ -119,11 +119,12 @@ function step(context, area) {
   }
 
   // Send the player's position to the network
-  if (
-    (originalPosition.x !== player.position.x || originalPosition.y !== player.position.y) &&
-    network && network.socket && network.socket.connected
-  ) {
 
+  // if (
+  //   (originalPosition.x !== player.position.x || originalPosition.y !== player.position.y) &&
+  //   network && network.socket && network.socket.connected
+  // ) {
+  if ( network && network.socket && network.socket.connected) {
     const p = { index: playerIndex, position: player.position };
 
     // If we're player 1 (host) then also send the snakes' positions
@@ -131,7 +132,7 @@ function step(context, area) {
       p,
       s: snakes.map((snake, index) => ({
         index,
-        position: snake.position
+        head: snake ? snake.path[snake.path.length - 1] : { x: -1, y: -1 } // The snake is dead when x and y are -1
       }))
     } : { p };
 
@@ -252,7 +253,7 @@ function movePlayer(timeScale, player, input, { width, height }) {
   }
 }
 
-function moveSnake(timeScale, snake, player, { width, height }, start, network) {
+function moveSnake(timeScale, snake, player, { width, height }, start) {
   // Only allow to change direction once every n milliseconds
   if (start % 100 < 34) { //FPS_INTERVAL
 

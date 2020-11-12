@@ -138,7 +138,7 @@ function initializeAndStart(beforeStart = player => {}) {
     ready: true
   };
 
-  PLAYERS.push(player);
+  PLAYERS[playerIndex] = player;
 
   player.img.addEventListener('load', function() {
     // TODO: Don't scale the player sprite.
@@ -152,7 +152,7 @@ function initializeAndStart(beforeStart = player => {}) {
     };
 
     canvas = document.getElementById('canvas');
-    toggleFullscreen();
+    //toggleFullscreen();
 
     // Allow for changes just before starting
     beforeStart(player);
@@ -175,10 +175,11 @@ document.addEventListener("DOMContentLoaded", function() {
       });
 
       socket.on("connect", () => {
-        network.socket = socket;
+        NETWORK.socket = socket;
       });
 
       socket.on("welcome", data => {
+        console.log("welcome", data);
         playerIndex = Number.parseInt(data);
 
         initializeAndStart(player => player.ready = false);
