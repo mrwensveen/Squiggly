@@ -31,10 +31,10 @@ let snakes = [];
 let powerup = null;
 
 function step(context, area) {
-  const { players, playerIndex, input, renderContext, network } = context;
+  const { players, clientIndex, input, renderContext, network } = context;
   const { dt, ctx, start } = renderContext;
   const { x, y, width, height } = area;
-  const player = players[playerIndex];
+  const player = players[clientIndex];
 
   const timeScale = dt / 70; // This is an arbitrary number that seems to work well.
 
@@ -128,7 +128,7 @@ function step(context, area) {
   //   network && network.socket && network.socket.connected
   // ) {
   if ( network && network.socket && network.socket.connected) {
-    const p = { i: playerIndex, pos: player.position };
+    const p = { i: clientIndex, position: player.position };
 
     // If we're player 1 (host) then also send the snakes' positions
     const message = network.isHost ? {
@@ -139,7 +139,7 @@ function step(context, area) {
       }))
     } : { p };
 
-    network.socket.emit("p", message);
+    network.socket.emit("step", message);
   }
 }
 

@@ -46,7 +46,7 @@ import INPUT from './js/input.js'
 
 // --- Game elements ---
 
-let playerIndex = 0;
+let clientIndex = 0;
 
 const WIDTH = 800, HEIGHT = 600;
 
@@ -77,7 +77,7 @@ function pump(timestamp)	{
       renderContext: { ctx: canvas.getContext('2d'), dt, start },
       input: INPUT,
       players: PLAYERS,
-      playerIndex
+      clientIndex
     };
 
     if (PLAYERS.some(player => !player.ready)) {
@@ -117,7 +117,7 @@ function initializeAndStart(beforeStart = player => {}) {
   document.getElementById('canvas').style.visibility = 'visible';
 
   const music = document.getElementById('music');
-  music.play();
+  //music.play();
 
   let track = 0;
   music.addEventListener('ended', function() {
@@ -139,7 +139,7 @@ function initializeAndStart(beforeStart = player => {}) {
     ready: true
   };
 
-  PLAYERS[playerIndex] = player;
+  PLAYERS[clientIndex] = player;
 
   player.img.addEventListener('load', function() {
     // TODO: Don't scale the player sprite.
@@ -153,7 +153,7 @@ function initializeAndStart(beforeStart = player => {}) {
     };
 
     canvas = document.getElementById('canvas');
-    toggleFullscreen();
+    //toggleFullscreen();
 
     // Allow for changes just before starting
     beforeStart(player);
@@ -181,12 +181,37 @@ document.addEventListener("DOMContentLoaded", function() {
 
       socket.on("welcome", data => {
         console.log("welcome", data);
-        playerIndex = Number.parseInt(data);
+        clientIndex = Number.parseInt(data);
 
-        initializeAndStart(player => player.ready = false);
+        NETWORK.isHost = clientIndex === 0;
+        initializeAndStart(player => {
+          player.ready = false;
+
+          // Announce your initial position
+          socket.emit("announce", { i: clientIndex, position: player.position });
+        });
       });
 
+      socket.on("announce", data => {
+        console.log("announce", data);
 
+        // A challenger has arrived!
+        const {i: remoteIndex, ...remotePlayer} = data;
+
+        // Add the remote player to the PLAYERS array
+        if (!PLAYERS[remoteIndex]) {
+          // Create a copy of the local player and set any remote player data
+          const localPlayer = PLAYERS[clientIndex];
+          PLAYERS[remoteIndex] = { ...localPlayer, ...remotePlayer};
+
+          // Announce your initial position to the new player
+          socket.emit("announce", { i: clientIndex, position: localPlayer.position });
+        }
+      });
+
+      socket.on("step", data => {
+        console.log("step", data);
+      });
     } else {
       initializeAndStart();
     }

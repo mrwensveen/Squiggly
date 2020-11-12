@@ -1,14 +1,19 @@
 import * as playerSprite from '../sprites/player.js';
 
 function step(context, area) {
-  const { players, playerIndex, input, renderContext } = context;
+  const { players, clientIndex, input, renderContext } = context;
   const { ctx } = renderContext;
   const { x, y, width, height } = area;
-  const player = players[playerIndex];
+  const player = players[clientIndex];
 
   ctx.clearRect(x, y, width, height);
 
-  playerSprite.draw(player, ctx, area);
+  // Draw all players
+  players.forEach(p => {
+    if (p && p.position) {
+      playerSprite.draw(p, ctx, area);
+    }
+  });
 
   ctx.textBaseline = 'top';
   ctx.font = '30px Rubik Mono One';

@@ -1,8 +1,8 @@
 function step(context, area) {
-  const { players, playerIndex, renderContext } = context;
+  const { players, clientIndex, renderContext } = context;
   const { ctx } = renderContext;
   const { x, y, width, height } = area;
-  const player = players[playerIndex];
+  const player = players[clientIndex];
 
   const top = y + 30;
 
