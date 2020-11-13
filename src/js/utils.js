@@ -37,3 +37,7 @@ export function distanceToPlayer(snake, player) {
 
   return Math.sqrt(Math.pow(head.x - center.x, 2) + Math.pow(head.y - center.y, 2));
 }
+
+export function allPlayersReady(players) {
+  return !players.some(p => p && !p.ready);
+}

@@ -38,14 +38,20 @@ function step(context, area) {
 
   const timeScale = dt / 70; // This is an arbitrary number that seems to work well.
 
-  // Proceed to first/next level when there are no snakes
-  if (network.isHost && !players.some(p => p && !p.ready) && snakes.filter(Boolean).length === 0) {
-    snakes = Array(++player.level * 2).fill(0).map(() => ({
-      v: { direction: Math.random() * TAU, speed: 3 },
-      path: [{ x: Math.floor(Math.random() * width), y: Math.floor(Math.random() * height) }],
-      size: SIZE,
-      hue: Math.floor(Math.random() * 360)
-    }));
+  if (utils.allPlayersReady(players) && (player.level === 0 || snakes.filter(Boolean).length === 0)) {
+    if (network.isHost) {
+      // On the host, when all players are ready,
+      // proceed to first/next level when there are no snakes
+      snakes = Array(++player.level * 2).fill(0).map(() => ({
+        v: { direction: Math.random() * TAU, speed: 3 },
+        path: [{ x: Math.floor(Math.random() * width), y: Math.floor(Math.random() * height) }],
+        size: SIZE,
+        hue: Math.floor(Math.random() * 360)
+      }));
+    } else {
+      // On the client, request level state
+      network.socket?.emit("init", { safe: true });
+    }
   }
 
   ctx.clearRect(x, y, width, height);
@@ -101,8 +107,8 @@ function step(context, area) {
   });
 
   // Move and draw snakes
-  for (let s = 0; s < snakes.length; s++) {
-    const snake = snakes[s];
+  for (let snakeIndex = 0; snakeIndex < snakes.length; snakeIndex++) {
+    const snake = snakes[snakeIndex];
     if (!snake) continue;
 
     // Move the snake
@@ -111,13 +117,22 @@ function step(context, area) {
     }
 
     // Bite the player, if in range
-    handleBite(snake, player, area);
+    if (handleBite(snake, player, area)) {
+      // Send the snake's updated size to the network
+      if (network.socket?.connected) {
+        const message = {
+          safe: true,
+          s: [{ i: snakeIndex, size: snake.size }]
+        };
+        network.socket.emit("step", message);
+      }
+    }
 
     // Hunger games
     snake.size -= timeScale * STARVATION;
     if (snake.size <= 1) {
       // Remove the starved snake
-      snakes[s] = null;
+      snakes[snakeIndex] = null;
     }
 
     // Draw snake
@@ -125,19 +140,9 @@ function step(context, area) {
   }
 
   // Send the player's position to the network
-  if (network?.socket?.connected) {
-    const p = { i: network.clientIndex, position: player.position };
-
-    // If we're player 1 (host) then also send the snakes' positions
-    const message = network.isHost ? {
-      p,
-      s: snakes.map((snake, i) => ({
-        i,
-        position: snake?.path[snake.path.length - 1]
-      }))
-    } : { p };
-
-    network.socket.emit("step", message);
+  // Also the snakes' info if we're the host
+  if (network.socket?.connected) {
+    sendSocketStepEvent(network, player);
   }
 }
 
@@ -149,17 +154,15 @@ function handleBite(snake, player, { width, height }) {
   if (utils.isRectangleCollision(headRect, plRect)) {
     snake.size += SIZE;
 
-    // TODO: Audio?
-    //document.getElementById('death').play();
-
+    // TODO: Make this work in network play
     // If the snake gets too big, split it into two
-    if (snake.size > SIZE * 2) {
-      // Keep the front
-      snake.path = snake.path.slice(-SIZE);
-      snake.size = SIZE;
-      // A new snake is born.
-      snakes.push({ v: { x: 0, y: 0 }, path: [head], size: SIZE, hue: utils.mod(snake.hue + Math.floor(Math.random() * 90) - 45, 360) });
-    }
+    // if (snake.size > SIZE * 2) {
+    //   // Keep the front
+    //   snake.path = snake.path.slice(-SIZE);
+    //   snake.size = SIZE;
+    //   // A new snake is born.
+    //   snakes.push({ v: { x: 0, y: 0 }, path: [head], size: SIZE, hue: utils.mod(snake.hue + Math.floor(Math.random() * 90) - 45, 360) });
+    // }
 
     // TODO: make this suck less
     // Place the player at a random position
@@ -172,7 +175,11 @@ function handleBite(snake, player, { width, height }) {
     if (player.health <= 0) {
       snakes = [];
     }
+
+    return true;
   }
+
+  return false;
 }
 
 function movePlayer(timeScale, player, input, { width, height }) {
@@ -266,22 +273,98 @@ function moveSnakeHead(snake, newPoint) {
   }
 }
 
-function handleSocketEvent(event, data, network) {
-  if (!network.isHost && event === "step" && data?.s?.length) {
+function sendSocketStepEvent(network, player) {
+  const p = { i: network.clientIndex, position: player.position };
+
+  // If we're player 1 (host) then also send the snakes' positions
+  const message = network.isHost ? {
+    p,
+    s: snakes.map((snake, i) => ({
+      i,
+      position: snake?.path[snake.path.length - 1]
+    }))
+  } : { p };
+
+  network.socket.emit("step", message);
+}
+
+function handleSocketEvent(event, data, context) {
+  switch (event) {
+    case "step":
+      handleSocketStepEvent(data, context);
+      break;
+    case "init":
+      handleSocketInitEvent(data, context);
+      break;
+    default:
+      break;
+  }
+}
+
+function handleSocketStepEvent(data, { network, players }) {
+  if (data?.p?.level) {
+    // Host player leveled up, then so do we
+    console.log("Client level up!", data);
+
+    players[network.clientIndex].level = data.p.level;
+
+    // This also means we will be getting new snakes
+    if (data?.s?.length) {
+      snakes = [];
+    }
+  }
+
+  if (data?.s?.length) {
     data.s.forEach(remoteSnake => {
-      if(!snakes[remoteSnake.i]) {
+      const snake = snakes[remoteSnake.i];
+
+      if (!snake) {
+        // New snake!
         snakes[remoteSnake.i] = {
           path: [remoteSnake.position],
-          size: SIZE,
-          hue: Math.floor(Math.random() * 360) // TODO: sync?
+          size: remoteSnake.size,
+          hue: remoteSnake.hue
         };
-      } else {
-        const snake = snakes[remoteSnake.i];
-        moveSnakeHead(snake, remoteSnake.position);
+      } else if (remoteSnake.size) {
+        // The snake has grown
+        snake.size = remoteSnake.size;
+      } else if (remoteSnake.position !== undefined) {
+        if (remoteSnake.position) {
+          // The snake has moved
+          moveSnakeHead(snake, remoteSnake.position);
+        } else {
+          // The snake has died
+          snakes[remoteSnake.i] = null;
+        }
       }
     });
   }
 }
 
-export default { step, handleSocketEvent }
+function handleSocketInitEvent(data, context) {
+  // A new player has arrived while the game has already started
+  const { network } = context;
 
+  if (network.isHost) {
+    emitLevelStateMessage(context);
+  }
+}
+
+function emitLevelStateMessage({ network, players }) {
+  const player = players[network.clientIndex];
+
+  const message = {
+    safe: true,
+    p: { i: network.clientIndex, level: player.level },
+    s: snakes.map((snake, i) => ({
+      i,
+      position: snake.path[0],
+      size: snake.size,
+      hue: snake.hue
+    }))
+  };
+
+  network.socket?.emit("step", message);
+}
+
+export default { step, handleSocketEvent }

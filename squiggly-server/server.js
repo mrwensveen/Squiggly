@@ -32,18 +32,22 @@ server.on("connection", socket => {
   }
 
   // Relay the following events
-  ["announce", "step"].forEach(event => {
-    socket.on(event, data => {
-      broadcast(socket, event, data);
+  ["announce", "init", "step"].forEach(event => {
+    socket.on(event, ({ safe, ...data }) => {
+      broadcast(socket, event, data, !!safe);
     });
   });
 });
 
-function broadcast(socket, event, data) {
-    // Broadcast the event to everyone in the room (except the sending socket)
-    socket.rooms.forEach(room => {
+function broadcast(socket, event, data, safe ) {
+  const emitter = safe ? socket.broadcast : socket.broadcast.volatile;
+
+  if (safe) console.log("safe!", event, data);
+
+  // Broadcast the event to everyone in the room (except the sending socket)
+  socket.rooms.forEach(room => {
     if (room !== socket.id) {
-      socket.broadcast.volatile.to(room).emit(event, data);
+      emitter.to(room).emit(event, data);
     }
   });
 }

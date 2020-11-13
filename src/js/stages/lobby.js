@@ -40,7 +40,7 @@ function handleWait(player, input, network) {
 
     if (network && network.socket && network.socket.connected) {
       const p = { i: network.clientIndex, ready: player.ready };
-      const message = { p };
+      const message = { safe: true, p };
 
       network.socket.emit("step", message);
     }

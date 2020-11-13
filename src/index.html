@@ -35,6 +35,8 @@
 
 <script type="module">
 
+import * as utils from './js/utils.js';
+
 import lobby from './js/stages/lobby.js';
 import level from './js/stages/level.js';
 import hud from './js/stages/hud.js';
@@ -63,14 +65,20 @@ const PLAYERS = [];
 let onSocketEvent = null;
 
 // combined level and hud socket event
-function levelSocketEvent(event, data, network) {
-  level.handleSocketEvent?.call(null, event, data, network);
-  hud.handleSocketEvent?.call(null, event, data, network);
+function levelSocketEvent(event, data, context) {
+  level.handleSocketEvent?.call(null, event, data, context);
+  hud.handleSocketEvent?.call(null, event, data, context);
 };
 
 function announce() {
   const player = PLAYERS[NETWORK.clientIndex];
-  NETWORK.socket.emit("announce", { i: NETWORK.clientIndex, remoteId: NETWORK.socket.id, position: player.position, ready: player.ready });
+  NETWORK.socket.emit("announce", {
+    safe: true,
+    i: NETWORK.clientIndex,
+    remoteId: NETWORK.socket.id,
+    position: player.position,
+    ready: player.ready
+  });
 }
 
 // --- Rendering stuff ---
@@ -98,7 +106,7 @@ function pump(timestamp)	{
 
     // Game phases: lobby, level + hud, hiscores
 
-    if (PLAYERS.some(player => player && !player.ready)) {
+    if (!utils.allPlayersReady(PLAYERS)) {
       lobby.step(context, { x: 0, y: 0, width: WIDTH, height: HEIGHT - 50 }); // context, area
       onSocketEvent = lobby.handleSocketEvent;
     }
@@ -161,7 +169,7 @@ function initializeAndStart(beforeStart = player => {}) {
   PLAYERS[NETWORK.clientIndex] = player;
 
   canvas = document.getElementById('canvas');
-  toggleFullscreen();
+  //toggleFullscreen();
 
   // Allow for changes just before starting
   beforeStart(player);
@@ -171,6 +179,7 @@ function initializeAndStart(beforeStart = player => {}) {
 }
 
 document.addEventListener("DOMContentLoaded", function() {
+  document.getElementById('start').focus();
 
   new_player = {
     img: new Image(),
@@ -255,6 +264,7 @@ document.addEventListener("DOMContentLoaded", function() {
           const {i: remoteClientIndex, ...remotePlayerData} = data.p;
           const player = PLAYERS[remoteClientIndex];
 
+          // Update the remote player's data in our local copy
           if(player) {
             Object.assign(player, remotePlayerData);
           }
@@ -262,7 +272,8 @@ document.addEventListener("DOMContentLoaded", function() {
       });
 
       socket.onAny((event, data) => {
-        onSocketEvent?.call(null, event, data, NETWORK);
+        const context = { network: NETWORK, players: PLAYERS };
+        onSocketEvent?.call(null, event, data, context);
       })
     } else {
       initializeAndStart();
@@ -273,10 +284,10 @@ document.addEventListener("DOMContentLoaded", function() {
 </head>
 <body>
   <div id="instructions">
-    <p>Press the <strong>arrow keys</strong> to move the player and <strong>shift</strong> to use the speed boost.</p>
+    <p>Press the <strong>arrow keys</strong> to move the player and <strong>shift</strong> to use power-ups.</p>
     <p>Escape the sandworms until they starve.<br/>You monster.</p>
     <p>(You can only be bitten by the heads of the sandworms)</p>
-    <p>Host/join multi-player game: <input id="game_name" placeholder="Game name..." /></p>
+    <p>Host/join multi-player game: <input id="game_name" placeholder="Game name..." value="test"/></p>
     <button id="start">Start</button>
     <div class="licenses">
 <!-- music_01.mp3 -->
