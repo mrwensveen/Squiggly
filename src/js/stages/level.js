@@ -8,25 +8,14 @@ const STARVATION = 0.15;
 const TAU = Math.PI * 2; // 180 deg
 
 const POWERUPS = [
-  { type: 'speed', img: null, value: 100, active: false },
-  { type: 'speed', img: null, value: 100, active: false },
-  { type: 'shield', img: null, value: 100, active: false },
-  { type: 'shield', img: null, value: 100, active: false },
-  { type: 'health', img: null, value: 100, active: false }
+  { type: 'speed', value: 100, active: false },
+  { type: 'speed', value: 100, active: false },
+  { type: 'shield', value: 100, active: false },
+  { type: 'shield', value: 100, active: false },
+  { type: 'health', value: 100, active: false }
 ];
 
 // --- Initialization ---
-POWERUPS.forEach(p => {
-  if (!p.img) {
-    p.img = new Image();
-    p.img.addEventListener('load', () => {
-      p.img.width = 32;
-      p.img.height = 32;
-    });
-    p.img.src = `pwr_${p.type}.png`;
-  }
-});
-
 let snakes = [];
 let powerup = null;
 
@@ -65,13 +54,14 @@ function step(context, area) {
     } else if (Math.random() < timeScale * .01) {
       const puIndex = Math.floor(Math.random() * POWERUPS.length)
       const pu = POWERUPS[puIndex];
+      const puImg = powerupSprite.POWERUP_IMGS.get(pu.type);
 
       powerup = {
         ...pu,
         i: puIndex,
         position: {
-          x: Math.floor(Math.random() * (width - pu.img.width)),
-          y: Math.floor(Math.random() * (height - pu.img.height))
+          x: Math.floor(Math.random() * (width - puImg.width)),
+          y: Math.floor(Math.random() * (height - puImg.height))
         }
       };
     }
@@ -79,7 +69,7 @@ function step(context, area) {
 
   // Draw powerup
   if (powerup) {
-    powerupSprite.draw(powerup, ctx, area);
+    powerupSprite.draw({ ...powerup, img: powerupSprite.POWERUP_IMGS.get(powerup.type) }, ctx, area);
   }
 
   // Move the player
@@ -88,7 +78,8 @@ function step(context, area) {
 
   // Pick up a powerup?
   if (powerup) {
-    const poRect = { ...powerup.position, width: powerup.img.width, height: powerup.img.height };
+    const puImg = powerupSprite.POWERUP_IMGS.get(powerup.type);
+    const poRect = { ...powerup.position, width: puImg.width, height: puImg.height };
     const plRect = { ...player.position, width: player.img.width, height: player.img.height };
 
     if (utils.isRectangleCollision(poRect, plRect)) {
@@ -287,7 +278,7 @@ function moveSnakeHead(snake, newPoint) {
 }
 
 function sendSocketStepEvent(network, player) {
-  const p = { i: network.clientIndex, position: player.position };
+  const p = { i: network.clientIndex, position: player.position, powerup: player.powerup };
 
   // If we're player 1 (host) then also send the snakes' positions and powerups
   const message = network.isHost ? {
