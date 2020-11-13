@@ -8,11 +8,11 @@ const STARVATION = 0.15;
 const TAU = Math.PI * 2; // 180 deg
 
 const POWERUPS = [
-  { type: 'speed', img: null },
-  { type: 'speed', img: null },
-  { type: 'shield', img: null },
-  { type: 'shield', img: null },
-  { type: 'health', img: null }
+  { type: 'speed', img: null, value: 100, active: false },
+  { type: 'speed', img: null, value: 100, active: false },
+  { type: 'shield', img: null, value: 100, active: false },
+  { type: 'shield', img: null, value: 100, active: false },
+  { type: 'health', img: null, value: 100, active: false }
 ];
 
 // --- Initialization ---
@@ -57,21 +57,24 @@ function step(context, area) {
   ctx.clearRect(x, y, width, height);
 
   // Remove or spawn powerup
-  if (powerup) {
-    if (Math.random() < timeScale * .001) {
-      powerup = null;
+  if (network.isHost) {
+    if (powerup) {
+      if (Math.random() < timeScale * .001) {
+        powerup = null;
+      }
+    } else if (Math.random() < timeScale * .01) {
+      const puIndex = Math.floor(Math.random() * POWERUPS.length)
+      const pu = POWERUPS[puIndex];
+
+      powerup = {
+        ...pu,
+        i: puIndex,
+        position: {
+          x: Math.floor(Math.random() * (width - pu.img.width)),
+          y: Math.floor(Math.random() * (height - pu.img.height))
+        }
+      };
     }
-  } else if (Math.random() < timeScale * .01) {
-    const p = POWERUPS[Math.floor(Math.random() * POWERUPS.length)];
-    powerup = {
-      value: 100,
-      position: {
-        x: Math.floor(Math.random() * (width - p.img.width)),
-        y: Math.floor(Math.random() * (height - p.img.height))
-      },
-      active: false,
-      ...p
-    };
   }
 
   // Draw powerup
@@ -96,6 +99,16 @@ function step(context, area) {
       }
 
       powerup = null;
+
+      // Notify other players that you've picked up the powerup
+      if (network.socket?.connected) {
+        const message = {
+          safe: true,
+          pu: null
+        };
+        network.socket.emit("step", message);
+      }
+
     }
   }
 
@@ -276,9 +289,10 @@ function moveSnakeHead(snake, newPoint) {
 function sendSocketStepEvent(network, player) {
   const p = { i: network.clientIndex, position: player.position };
 
-  // If we're player 1 (host) then also send the snakes' positions
+  // If we're player 1 (host) then also send the snakes' positions and powerups
   const message = network.isHost ? {
     p,
+    pu: powerup ? { i: powerup.i, position: powerup.position } : null,
     s: snakes.map((snake, i) => ({
       i,
       position: snake?.path[snake.path.length - 1]
@@ -311,6 +325,19 @@ function handleSocketStepEvent(data, { network, players }) {
     // This also means we will be getting new snakes
     if (data?.s?.length) {
       snakes = [];
+    }
+  }
+
+  if (data?.pu !== undefined) {
+    if (data?.pu) {
+      if (!powerup) {
+        powerup = {
+          ...POWERUPS[data.pu.i],
+          position: data.pu.position
+        };
+      }
+    } else {
+      powerup = null;
     }
   }
 
