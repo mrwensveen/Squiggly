@@ -1,4 +1,5 @@
 import * as utils from '../utils.js';
+import * as powerupSprite from '../sprites/powerup.js';
 
 export function draw(player, ctx, { x, y }) {
   if (!player.position) return;
@@ -18,7 +19,9 @@ export function draw(player, ctx, { x, y }) {
 
     ctx.save();
     ctx.globalAlpha = .3;
-    ctx.drawImage(player.powerup.img, center.x - player.powerup.value, center.y - player.powerup.value, player.powerup.value * 2, player.powerup.value * 2);
+
+    const puImg = powerupSprite.POWERUP_IMGS.get(player.powerup.type);
+    ctx.drawImage(puImg, center.x - player.powerup.value, center.y - player.powerup.value, player.powerup.value * 2, player.powerup.value * 2);
     ctx.restore();
   }
 }
