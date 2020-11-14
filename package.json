@@ -1,0 +1,24 @@
+{
+  "name": "squiggly",
+  "version": "1.0.0",
+  "description": "Arcade-style game where you are hunted by sandworms",
+  "main": "index.html",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mrwensveen/Squiggly.git"
+  },
+  "author": "Matthijs Wensveen",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mrwensveen/Squiggly/issues"
+  },
+  "homepage": "https://github.com/mrwensveen/Squiggly#readme",
+  "devDependencies": {
+    "eslint": "^7.13.0",
+    "eslint-config-airbnb-base": "^14.2.1",
+    "eslint-plugin-import": "^2.22.1"
+  }
+}
