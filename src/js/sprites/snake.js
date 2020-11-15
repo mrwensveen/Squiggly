@@ -1,6 +1,8 @@
 function draw(snake, ctx, { x, y }) {
   let currentPoint = snake.path[0];
 
+  if (!currentPoint) return;
+
   for (let i = 1; i < snake.path.length; i++) {
     const nextPoint = snake.path[i];
 

@@ -344,12 +344,14 @@ function handleSocketStepEvent(data, { network, players }) {
       const snake = snakes[remoteSnake.i];
 
       if (!snake) {
+        if (remoteSnake.position && remoteSnake.size && remoteSnake.hue) {
         // New snake!
-        snakes[remoteSnake.i] = {
-          path: [remoteSnake.position],
-          size: remoteSnake.size,
-          hue: remoteSnake.hue,
-        };
+          snakes[remoteSnake.i] = {
+            path: [remoteSnake.position],
+            size: remoteSnake.size,
+            hue: remoteSnake.hue,
+          };
+        }
       } else if (remoteSnake.size) {
         // The snake has grown
         snake.size = remoteSnake.size;
@@ -383,9 +385,9 @@ function emitLevelStateMessage({ network, players }) {
     p: { i: network.clientIndex, level: player.level },
     s: snakes.map((snake, i) => ({
       i,
-      position: snake.path[0],
-      size: snake.size,
-      hue: snake.hue,
+      position: snake?.path[0],
+      size: snake?.size,
+      hue: snake?.hue,
     })),
   };
 
