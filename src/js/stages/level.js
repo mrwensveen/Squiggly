@@ -5,7 +5,6 @@ import powerupSprite from '../sprites/powerup.js';
 
 const SIZE = 50;
 const STARVATION = 0.15;
-const TAU = Math.PI * 2; // 180 deg
 
 const POWERUPS = [
   { type: 'speed', value: 100, active: false },
@@ -33,7 +32,7 @@ function step(context, area) {
       // On the host, when all players are ready,
       // proceed to first/next level when there are no snakes
       snakes = Array(++player.level * 2).fill(0).map(() => ({
-        v: { direction: Math.random() * TAU, speed: 3 },
+        v: { direction: Math.random() * utils.TAU, speed: 3 },
         path: [{ x: Math.floor(Math.random() * width), y: Math.floor(Math.random() * height) }],
         size: SIZE,
         hue: Math.floor(Math.random() * 360),
@@ -120,7 +119,11 @@ function step(context, area) {
 
     // Move the snake
     if (network.isHost) {
-      moveSnake(timeScale, snake, player, area, start);
+      // Find out the closest player
+      const targetPlayer = utils.closestPlayer(snake, players);
+
+      // Move towards the target player
+      moveSnake(timeScale, snake, targetPlayer, area, start);
     }
 
     // Bite the player, if in range
@@ -247,7 +250,7 @@ function moveSnake(timeScale, snake, player, { width, height }, start) {
     const targetAngle = utils.angleToPlayer(snake, player);
 
     const steerDirection = (targetAngle !== 0) * (targetAngle < Math.PI ? steerSpeed : -steerSpeed);
-    snake.v.direction = utils.mod(snake.v.direction + steerDirection, TAU);
+    snake.v.direction = utils.mod(snake.v.direction + steerDirection, utils.TAU);
 
     // Max speed
     const maxSpeed = 5; const
@@ -267,10 +270,10 @@ function moveSnake(timeScale, snake, player, { width, height }, start) {
 
   // bounce
   if (newPoint.x < 0 || newPoint.x > width) {
-    snake.v.direction = utils.mod(Math.PI - snake.v.direction, TAU);
+    snake.v.direction = utils.mod(Math.PI - snake.v.direction, utils.TAU);
   }
   if (newPoint.y < 0 || newPoint.y > height) {
-    snake.v.direction = utils.mod(0 - snake.v.direction, TAU);
+    snake.v.direction = utils.mod(0 - snake.v.direction, utils.TAU);
   }
 
   // Add the new point to the head of the snake

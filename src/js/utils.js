@@ -1,4 +1,4 @@
-const TAU = Math.PI * 2; // 180 deg
+export const TAU = Math.PI * 2; // 180 deg
 
 export function mod(x, m) {
   return ((x % m) + m) % m;
@@ -38,6 +38,17 @@ export function distanceToPlayer(snake, player) {
   return Math.sqrt((head.x - center.x) ** 2 + (head.y - center.y) ** 2);
 }
 
+export function closestPlayer(snake, players) {
+  const { p: targetPlayer } = players.reduce(closestPlayerReducer, { snake });
+
+  return targetPlayer;
+}
+
 export function allPlayersReady(players) {
   return !players.some((p) => p && !p.ready);
+}
+
+function closestPlayerReducer(acc, p) {
+  const d = distanceToPlayer(acc.snake, p);
+  return !acc.d || d < acc.d ? { snake: acc.snake, d, p } : acc;
 }
