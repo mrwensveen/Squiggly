@@ -1,4 +1,4 @@
-export const POWERUP_IMGS = new Map(
+const POWERUP_IMGS = new Map(
   ['speed', 'shield', 'health'].map((type) => {
     const img = new Image();
     img.addEventListener('load', () => {
@@ -21,4 +21,4 @@ function draw(powerup, ctx, { x, y }) {
   );
 }
 
-export default draw;
+export default { draw, POWERUP_IMGS };

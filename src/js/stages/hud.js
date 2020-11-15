@@ -1,4 +1,4 @@
-import * as powerupSprite from '../sprites/powerup.js';
+import powerupSprite from '../sprites/powerup.js';
 
 function step(context, area) {
   const { players, renderContext, network } = context;

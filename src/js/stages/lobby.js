@@ -1,4 +1,4 @@
-import * as playerSprite from '../sprites/player.js';
+import playerSprite from '../sprites/player.js';
 
 function step(context, area) {
   const { players, input, renderContext, network } = context;

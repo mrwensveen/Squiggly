@@ -1,5 +1,5 @@
 import * as utils from '../utils.js';
-import * as powerupSprite from './powerup.js';
+import powerupSprite from './powerup.js';
 
 function draw(player, ctx, { x, y }) {
   if (!player.position) return;
@@ -38,4 +38,4 @@ function draw(player, ctx, { x, y }) {
   }
 }
 
-export default draw;
+export default { draw };

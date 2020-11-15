@@ -18,4 +18,4 @@ function draw(snake, ctx, { x, y }) {
   }
 }
 
-export default draw;
+export default { draw };

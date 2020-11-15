@@ -1,7 +1,7 @@
 import * as utils from '../utils.js';
-import * as snakeSprite from '../sprites/snake.js';
-import * as playerSprite from '../sprites/player.js';
-import * as powerupSprite from '../sprites/powerup.js';
+import snakeSprite from '../sprites/snake.js';
+import playerSprite from '../sprites/player.js';
+import powerupSprite from '../sprites/powerup.js';
 
 const SIZE = 50;
 const STARVATION = 0.15;
