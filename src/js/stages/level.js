@@ -12,7 +12,7 @@ const POWERUPS = [
   { type: 'speed', value: 100, active: false },
   { type: 'shield', value: 100, active: false },
   { type: 'shield', value: 100, active: false },
-  { type: 'health', value: 100, active: false }
+  { type: 'health', value: 100, active: false },
 ];
 
 // --- Initialization ---
@@ -27,7 +27,8 @@ function step(context, area) {
 
   const timeScale = dt / 70; // This is an arbitrary number that seems to work well.
 
-  if (utils.allPlayersReady(players) && (player.level === 0 || snakes.filter(Boolean).length === 0)) {
+  if (utils.allPlayersReady(players)
+    && (player.level === 0 || snakes.filter(Boolean).length === 0)) {
     if (network.isHost) {
       // On the host, when all players are ready,
       // proceed to first/next level when there are no snakes
@@ -35,11 +36,11 @@ function step(context, area) {
         v: { direction: Math.random() * TAU, speed: 3 },
         path: [{ x: Math.floor(Math.random() * width), y: Math.floor(Math.random() * height) }],
         size: SIZE,
-        hue: Math.floor(Math.random() * 360)
+        hue: Math.floor(Math.random() * 360),
       }));
     } else {
       // On the client, request level state
-      network.socket?.emit("init", { safe: true });
+      network.socket?.emit('init', { safe: true });
     }
   }
 
@@ -48,11 +49,11 @@ function step(context, area) {
   // Remove or spawn powerup
   if (network.isHost) {
     if (powerup) {
-      if (Math.random() < timeScale * .001) {
+      if (Math.random() < timeScale * 0.001) {
         powerup = null;
       }
-    } else if (Math.random() < timeScale * .01) {
-      const puIndex = Math.floor(Math.random() * POWERUPS.length)
+    } else if (Math.random() < timeScale * 0.01) {
+      const puIndex = Math.floor(Math.random() * POWERUPS.length);
       const pu = POWERUPS[puIndex];
       const puImg = powerupSprite.POWERUP_IMGS.get(pu.type);
 
@@ -61,20 +62,23 @@ function step(context, area) {
         i: puIndex,
         position: {
           x: Math.floor(Math.random() * (width - puImg.width)),
-          y: Math.floor(Math.random() * (height - puImg.height))
-        }
+          y: Math.floor(Math.random() * (height - puImg.height)),
+        },
       };
     }
   }
 
   // Draw powerup
   if (powerup) {
-    powerupSprite.draw({ ...powerup, img: powerupSprite.POWERUP_IMGS.get(powerup.type) }, ctx, area);
+    powerupSprite.draw({
+      ...powerup,
+      img: powerupSprite.POWERUP_IMGS.get(powerup.type),
+    }, ctx, area);
   }
 
   // Move the player
   movePlayer(timeScale, player, input, area);
-  player.score += timeScale * .5;
+  player.score += timeScale * 0.5;
 
   // Pick up a powerup?
   if (powerup) {
@@ -95,16 +99,15 @@ function step(context, area) {
       if (network.socket?.connected) {
         const message = {
           safe: true,
-          pu: null
+          pu: null,
         };
-        network.socket.emit("step", message);
+        network.socket.emit('step', message);
       }
-
     }
   }
 
   // Draw all players
-  players.forEach(p => {
+  players.forEach((p) => {
     if (p && p.position) {
       playerSprite.draw(p, ctx, area);
     }
@@ -126,9 +129,9 @@ function step(context, area) {
       if (network.socket?.connected) {
         const message = {
           safe: true,
-          s: [{ i: snakeIndex, size: snake.size }]
+          s: [{ i: snakeIndex, size: snake.size }],
         };
-        network.socket.emit("step", message);
+        network.socket.emit('step', message);
       }
     }
 
@@ -165,14 +168,19 @@ function handleBite(snake, player, { width, height }) {
     //   snake.path = snake.path.slice(-SIZE);
     //   snake.size = SIZE;
     //   // A new snake is born.
-    //   snakes.push({ v: { x: 0, y: 0 }, path: [head], size: SIZE, hue: utils.mod(snake.hue + Math.floor(Math.random() * 90) - 45, 360) });
+    //   snakes.push({
+    //     v: { x: 0, y: 0 },
+    //     path: [head],
+    //     size: SIZE,
+    //     hue: utils.mod(snake.hue + Math.floor(Math.random() * 90) - 45, 360),
+    //   });
     // }
 
     // TODO: make this suck less
     // Place the player at a random position
     player.position = {
       x: Math.floor(Math.random() * (width - player.img.width)),
-      y: Math.floor(Math.random() * (height - player.img.height))
+      y: Math.floor(Math.random() * (height - player.img.height)),
     };
 
     player.health -= 10;
@@ -219,43 +227,42 @@ function movePlayer(timeScale, player, input, { width, height }) {
   }
 
   if (player.health > 100) {
-    player.health = Math.max(player.health - timeScale * .05, 100);
+    player.health = Math.max(player.health - timeScale * 0.05, 100);
   }
 }
 
 function moveSnake(timeScale, snake, player, { width, height }, start) {
   // Only allow to change direction once every n milliseconds
-  if (start % 100 < 34) { //FPS_INTERVAL
-
+  if (start % 100 < 34) { // FPS_INTERVAL
     // Add something random to the vector
-    snake.v.direction += (Math.random() - .5) * Math.PI / 4; // Max direction change
+    snake.v.direction += (Math.random() - 0.5) * (Math.PI / 4); // Max direction change
 
     // Steer towards the player, or away when using the shield
-    const shieldActive = player.powerup &&
-      player.powerup.type === 'shield' &&
-      player.powerup.active &&
-      utils.distanceToPlayer(snake, player) <= 100;
+    const shieldActive = player.powerup
+      && player.powerup.type === 'shield'
+      && player.powerup.active
+      && utils.distanceToPlayer(snake, player) <= 100;
 
-    const steerSpeed =  Math.PI / 32 * (shieldActive ? -3 : 1);
+    const steerSpeed = (Math.PI / 32) * (shieldActive ? -3 : 1);
     const targetAngle = utils.angleToPlayer(snake, player);
 
-    snake.v.direction = utils.mod(snake.v.direction + (targetAngle === 0 ? 0 :
-        (targetAngle < Math.PI ? steerSpeed : -steerSpeed)), TAU);
+    const steerDirection = (targetAngle !== 0) * (targetAngle < Math.PI ? steerSpeed : -steerSpeed);
+    snake.v.direction = utils.mod(snake.v.direction + steerDirection, TAU);
 
     // Max speed
-    const maxSpeed = 5, minSpeed = 2;
-    snake.v.speed = Math.max(Math.min(snake.v.speed + Math.random() - .5, maxSpeed), minSpeed);
+    const maxSpeed = 5; const
+      minSpeed = 2;
+    snake.v.speed = Math.max(Math.min(snake.v.speed + Math.random() - 0.5, maxSpeed), minSpeed);
 
     // Constant speed
-    //snake.v.speed = 2;
+    // snake.v.speed = 2;
   }
-
 
   // add the vector to the path
   const lastPoint = snake.path[snake.path.length - 1];
   const newPoint = {
     x: lastPoint.x + (Math.cos(snake.v.direction) * snake.v.speed * timeScale),
-    y: lastPoint.y + (Math.sin(snake.v.direction) * snake.v.speed * timeScale)
+    y: lastPoint.y + (Math.sin(snake.v.direction) * snake.v.speed * timeScale),
   };
 
   // bounce
@@ -286,19 +293,19 @@ function sendSocketStepEvent(network, player) {
     pu: powerup ? { i: powerup.i, position: powerup.position } : null,
     s: snakes.map((snake, i) => ({
       i,
-      position: snake?.path[snake.path.length - 1]
-    }))
+      position: snake?.path[snake.path.length - 1],
+    })),
   } : { p };
 
-  network.socket.emit("step", message);
+  network.socket.emit('step', message);
 }
 
 function handleSocketEvent(event, data, context) {
   switch (event) {
-    case "step":
+    case 'step':
       handleSocketStepEvent(data, context);
       break;
-    case "init":
+    case 'init':
       handleSocketInitEvent(data, context);
       break;
     default:
@@ -309,7 +316,7 @@ function handleSocketEvent(event, data, context) {
 function handleSocketStepEvent(data, { network, players }) {
   if (data?.p?.level) {
     // Host player leveled up, then so do we
-    console.log("Client level up!", data);
+    // console.log('Client level up!', data);
 
     players[network.clientIndex].level = data.p.level;
 
@@ -324,7 +331,7 @@ function handleSocketStepEvent(data, { network, players }) {
       if (!powerup) {
         powerup = {
           ...POWERUPS[data.pu.i],
-          position: data.pu.position
+          position: data.pu.position,
         };
       }
     } else {
@@ -333,7 +340,7 @@ function handleSocketStepEvent(data, { network, players }) {
   }
 
   if (data?.s?.length) {
-    data.s.forEach(remoteSnake => {
+    data.s.forEach((remoteSnake) => {
       const snake = snakes[remoteSnake.i];
 
       if (!snake) {
@@ -341,7 +348,7 @@ function handleSocketStepEvent(data, { network, players }) {
         snakes[remoteSnake.i] = {
           path: [remoteSnake.position],
           size: remoteSnake.size,
-          hue: remoteSnake.hue
+          hue: remoteSnake.hue,
         };
       } else if (remoteSnake.size) {
         // The snake has grown
@@ -378,11 +385,11 @@ function emitLevelStateMessage({ network, players }) {
       i,
       position: snake.path[0],
       size: snake.size,
-      hue: snake.hue
-    }))
+      hue: snake.hue,
+    })),
   };
 
-  network.socket?.emit("step", message);
+  network.socket?.emit('step', message);
 }
 
-export default { step, handleSocketEvent }
+export default { step, handleSocketEvent };

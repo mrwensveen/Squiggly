@@ -1,4 +1,4 @@
-export function draw(snake, ctx, { x, y }) {
+function draw(snake, ctx, { x, y }) {
   let currentPoint = snake.path[0];
 
   for (let i = 1; i < snake.path.length; i++) {
@@ -17,3 +17,5 @@ export function draw(snake, ctx, { x, y }) {
     currentPoint = nextPoint;
   }
 }
+
+export default draw;

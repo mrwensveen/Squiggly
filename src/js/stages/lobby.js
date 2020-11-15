@@ -9,7 +9,7 @@ function step(context, area) {
   ctx.clearRect(x, y, width, height);
 
   // Draw all players
-  players.forEach(p => {
+  players.forEach((p) => {
     if (p && p.position) {
       playerSprite.draw(p, ctx, area);
     }
@@ -33,8 +33,8 @@ function step(context, area) {
 function handleWait(player, input, network) {
   if (!player || input.keyUpHandlers.has('lobbyWait')) return;
 
-  input.keyUpHandlers.set('lobbyWait', event => {
-    if (event.code !== "Space") return;
+  input.keyUpHandlers.set('lobbyWait', (event) => {
+    if (event.code !== 'Space') return;
 
     player.ready = true;
 
@@ -42,7 +42,7 @@ function handleWait(player, input, network) {
       const p = { i: network.clientIndex, ready: player.ready };
       const message = { safe: true, p };
 
-      network.socket.emit("step", message);
+      network.socket.emit('step', message);
     }
 
     // Remove the handler

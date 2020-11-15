@@ -1,6 +1,7 @@
 const BLINK = 750;
 
-let scores = null, fetchedScores = false;
+let scores = null;
+let fetchedScores = false;
 let playerHiscore = null;
 
 function step(context, area) {
@@ -15,8 +16,8 @@ function step(context, area) {
     fetchedScores = true;
 
     fetch('/scores')
-      .then(response => response.json())
-      .then(data => {
+      .then((response) => response.json())
+      .then((data) => {
         scores = Array.from(data).sort((s1, s2) => s2.score - s1.score).slice(0, 10);
         checkPlayerScore(player, input);
       });
@@ -54,10 +55,11 @@ function step(context, area) {
 
 function checkPlayerScore(player, input) {
   // See if player has a high score
-  const lowest = scores.length < 10 ? 0 : scores.map(s => s.score).reduce((p, c) => Math.min(p, c));
+  const lowest = scores.length < 10
+    ? 0 : scores.map((s) => s.score).reduce((p, c) => Math.min(p, c));
 
   if (player.score > lowest) {
-    playerHiscore = { name: "___", score: Math.floor(player.score), timestamp: Date.now() };
+    playerHiscore = { name: '___', score: Math.floor(player.score), timestamp: Date.now() };
     scores.push(playerHiscore);
 
     handlePlayerScore(input);
@@ -77,7 +79,7 @@ function handlePlayerScore(input) {
   // Add a keydown handler to allow the user to enter a name
   if (input.keyUpHandlers.has('handlePlayerScore')) return;
 
-  input.keyUpHandlers.set('handlePlayerScore', event => {
+  input.keyUpHandlers.set('handlePlayerScore', (event) => {
     if (event.key.length !== 1) return;
 
     if (playerHiscore.name.indexOf('_') >= 0) {
@@ -86,13 +88,13 @@ function handlePlayerScore(input) {
 
     if (playerHiscore.name.indexOf('_') === -1) {
       // Submit the score
-      fetch('/scores',  {
+      fetch('/scores', {
         method: 'POST',
         headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(playerHiscore)
+        body: JSON.stringify(playerHiscore),
       });
 
       // Remove the handler
@@ -105,8 +107,8 @@ function handlePlayerScore(input) {
 function handleWait(player, input) {
   if (input.keyUpHandlers.has('hiscoreWait')) return;
 
-  input.keyUpHandlers.set('hiscoreWait', event => {
-    if (event.code !== "Space") return;
+  input.keyUpHandlers.set('hiscoreWait', (event) => {
+    if (event.code !== 'Space') return;
 
     // TODO: Move this to a more logical place
     player.score = 0;
