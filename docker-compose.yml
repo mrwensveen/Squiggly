@@ -11,7 +11,7 @@ services:
     restart: always
 
   node:
-    image: "node:14"
+    image: "node:latest"
     user: "node"
     working_dir: /home/node/app
     environment:
