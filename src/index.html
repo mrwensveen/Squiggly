@@ -14,11 +14,13 @@
     visibility: hidden;
     width: 100%;
     height: 100%;
+    object-fit: contain;
   }
   #canvases img {
     visibility: hidden;
     width: 100%;
     height: 100%;
+    object-fit: contain;
   }
   #instructions { text-align: center; }
   .licenses pre { font-size: .8em; }
@@ -168,7 +170,7 @@ function initializeAndStart(beforeStart = player => {}) {
   PLAYERS[NETWORK.clientIndex] = player;
 
   canvas = document.getElementById('canvas');
-  //toggleFullscreen();
+  toggleFullscreen();
 
   // Allow for changes just before starting
   beforeStart(player);
