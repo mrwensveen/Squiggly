@@ -75,39 +75,41 @@ function step(context, area) {
     }, ctx, area);
   }
 
-  // Move the player
-  movePlayer(timeScale, player, input, area);
-  player.score += timeScale * 0.5;
+  if (player.health > 0) {
+    // Move the player
+    movePlayer(timeScale, player, input, area);
+    player.score += timeScale * 0.5;
 
-  // Pick up a powerup?
-  if (powerup) {
-    const puImg = powerupSprite.POWERUP_IMGS.get(powerup.type);
-    const poRect = { ...powerup.position, width: puImg.width, height: puImg.height };
-    const plRect = { ...player.position, width: player.img.width, height: player.img.height };
+    // Pick up a powerup?
+    if (powerup) {
+      const puImg = powerupSprite.POWERUP_IMGS.get(powerup.type);
+      const poRect = { ...powerup.position, width: puImg.width, height: puImg.height };
+      const plRect = { ...player.position, width: player.img.width, height: player.img.height };
 
-    if (utils.isRectangleCollision(poRect, plRect)) {
-      if (powerup.type === 'health') {
-        player.health += 10;
-      } else {
-        player.powerup = powerup;
-      }
+      if (utils.isRectangleCollision(poRect, plRect)) {
+        if (powerup.type === 'health') {
+          player.health += 10;
+        } else {
+          player.powerup = powerup;
+        }
 
-      powerup = null;
+        powerup = null;
 
-      // Notify other players that you've picked up the powerup
-      if (network.socket?.connected) {
-        const message = {
-          safe: true,
-          pu: null,
-        };
-        network.socket.emit('step', message);
+        // Notify other players that you've picked up the powerup
+        if (network.socket?.connected) {
+          const message = {
+            safe: true,
+            pu: null,
+          };
+          network.socket.emit('step', message);
+        }
       }
     }
   }
 
   // Draw all players
   players.forEach((p) => {
-    if (p && p.position) {
+    if (p?.health > 0 && p.position) {
       playerSprite.draw(p, ctx, area);
     }
   });
@@ -119,7 +121,7 @@ function step(context, area) {
 
     // Move the snake
     if (network.isHost) {
-      // Find out the closest player
+      // Find out the closest player (possibly null)
       const targetPlayer = utils.closestPlayer(snake, players);
 
       // Move towards the target player
@@ -188,7 +190,7 @@ function handleBite(snake, player, { width, height }) {
 
     player.health -= 10;
     if (player.health <= 0) {
-      snakes = [];
+      player.position = null;
     }
 
     return true;
@@ -240,17 +242,18 @@ function moveSnake(timeScale, snake, targetPlayer, players, { width, height }, s
     // Add something random to the vector
     snake.v.direction += (Math.random() - 0.5) * (Math.PI / 4); // Max direction change
 
-    // Steer towards the player, or away when using the shield
-    const shieldActive = isShieldActive(targetPlayer, snake);
-    const steerDirection = calculateSnakeToPlayerDirection(shieldActive, snake, targetPlayer);
-
+    // Steer away from players using the shield
     const shieldersSteerDirection = players
       .filter((p) => p !== targetPlayer && isShieldActive(p, snake))
       .map((p) => calculateSnakeToPlayerDirection(true, snake, p));
 
-    const averageSteerDirection = shieldersSteerDirection.length
-      ? shieldersSteerDirection.concat(steerDirection).reduce((sum, current) => sum + current, 0)
-      : steerDirection;
+    // Steer towards the player, or away when using the shield
+    const directions = targetPlayer ? shieldersSteerDirection.concat(
+      calculateSnakeToPlayerDirection(isShieldActive(targetPlayer, snake), snake, targetPlayer),
+    ) : shieldersSteerDirection;
+
+    const averageSteerDirection = directions.reduce((sum, current) => sum + current, 0)
+      / directions.length;
 
     snake.v.direction = utils.mod(snake.v.direction + averageSteerDirection, utils.TAU);
 
@@ -290,7 +293,12 @@ function moveSnakeHead(snake, newPoint) {
 }
 
 function sendSocketStepEvent(network, player) {
-  const p = { i: network.clientIndex, position: player.position, powerup: player.powerup };
+  const p = {
+    i: network.clientIndex,
+    position: player.position,
+    powerup: player.powerup,
+    health: player.health,
+  };
 
   // If we're player 1 (host) then also send the snakes' positions and powerups
   const message = network.isHost ? {
@@ -400,8 +408,7 @@ function emitLevelStateMessage({ network, players }) {
 }
 
 function isShieldActive(player, snake) {
-  return player.powerup
-    && player.powerup.type === 'shield'
+  return player?.powerup?.type === 'shield'
     && player.powerup.active
     && utils.distanceToPlayer(snake, player) <= 100;
 }

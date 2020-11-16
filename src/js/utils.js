@@ -32,23 +32,26 @@ export function playerCenter(player) {
 }
 
 export function distanceToPlayer(snake, player) {
-  const head = snake.path[snake.path.length - 1];
-  const center = playerCenter(player);
+  if (player?.position) {
+    const head = snake.path[snake.path.length - 1];
+    const center = playerCenter(player);
 
-  return Math.sqrt((head.x - center.x) ** 2 + (head.y - center.y) ** 2);
+    return Math.sqrt((head.x - center.x) ** 2 + (head.y - center.y) ** 2);
+  }
+  return null;
 }
 
 export function closestPlayer(snake, players) {
-  const { p: targetPlayer } = players.reduce(closestPlayerReducer, { snake });
+  const { player } = players.filter((p) => p?.position).reduce(closestPlayerReducer, { snake });
 
-  return targetPlayer;
+  return player;
 }
 
 export function allPlayersReady(players) {
   return !players.some((p) => p && !p.ready);
 }
 
-function closestPlayerReducer(acc, p) {
-  const d = distanceToPlayer(acc.snake, p);
-  return !acc.d || d < acc.d ? { snake: acc.snake, d, p } : acc;
+function closestPlayerReducer(acc, player) {
+  const distance = distanceToPlayer(acc.snake, player);
+  return !acc.distance || distance < acc.distance ? { snake: acc.snake, distance, player } : acc;
 }
