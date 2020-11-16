@@ -121,7 +121,12 @@ function handleWait(input, network) {
     // Remove the handler
     input.keyUpHandlers.delete('hiscoreWait');
 
-    document.getElementById(network.socket?.connected ? 'start_mp' : 'start_sp').click();
+    if (network.socket?.connected) {
+      network.socket.disconnect();
+      document.getElementById('start_mp').click();
+    } else {
+      document.getElementById('start_sp').click();
+    }
   });
 }
 
