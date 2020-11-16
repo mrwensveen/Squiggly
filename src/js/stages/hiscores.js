@@ -48,7 +48,7 @@ function step(context, area) {
       ctx.fillStyle = verticalGradient(ctx, height - 80, 30, 'black', 'blue', 'white', 'blue', 'black', 'black');
       ctx.fillText('PRESS SPACE TO TRY AGAIN', 75, height - 50);
 
-      handleWait(player, input);
+      handleWait(input, network);
     }
   }
 }
@@ -104,22 +104,24 @@ function handlePlayerScore(input) {
   });
 }
 
-function handleWait(player, input) {
+function handleWait(input, network) {
   if (input.keyUpHandlers.has('hiscoreWait')) return;
 
   input.keyUpHandlers.set('hiscoreWait', (event) => {
     if (event.code !== 'Space') return;
 
     // TODO: Move this to a more logical place
-    player.score = 0;
-    player.level = 0;
-    player.health = 100;
-    player.powerup = null;
+    // player.score = 0;
+    // player.level = 0;
+    // player.health = 100;
+    // player.powerup = null;
 
-    fetchedScores = false;
+    // fetchedScores = false;
 
     // Remove the handler
     input.keyUpHandlers.delete('hiscoreWait');
+
+    document.getElementById(network.socket?.connected ? 'start_mp' : 'start_sp').click();
   });
 }
 
