@@ -123,7 +123,7 @@ function step(context, area) {
       const targetPlayer = utils.closestPlayer(snake, players);
 
       // Move towards the target player
-      moveSnake(timeScale, snake, targetPlayer, area, start);
+      moveSnake(timeScale, snake, targetPlayer, players, area, start);
     }
 
     // Bite the player, if in range
@@ -234,23 +234,25 @@ function movePlayer(timeScale, player, input, { width, height }) {
   }
 }
 
-function moveSnake(timeScale, snake, player, { width, height }, start) {
+function moveSnake(timeScale, snake, targetPlayer, players, { width, height }, start) {
   // Only allow to change direction once every n milliseconds
   if (start % 100 < 34) { // FPS_INTERVAL
     // Add something random to the vector
     snake.v.direction += (Math.random() - 0.5) * (Math.PI / 4); // Max direction change
 
     // Steer towards the player, or away when using the shield
-    const shieldActive = player.powerup
-      && player.powerup.type === 'shield'
-      && player.powerup.active
-      && utils.distanceToPlayer(snake, player) <= 100;
+    const shieldActive = isShieldActive(targetPlayer, snake);
+    const steerDirection = calculateSnakeToPlayerDirection(shieldActive, snake, targetPlayer);
 
-    const steerSpeed = (Math.PI / 32) * (shieldActive ? -3 : 1);
-    const targetAngle = utils.angleToPlayer(snake, player);
+    const shieldersSteerDirection = players
+      .filter((p) => p !== targetPlayer && isShieldActive(p, snake))
+      .map((p) => calculateSnakeToPlayerDirection(true, snake, p));
 
-    const steerDirection = (targetAngle !== 0) * (targetAngle < Math.PI ? steerSpeed : -steerSpeed);
-    snake.v.direction = utils.mod(snake.v.direction + steerDirection, utils.TAU);
+    const averageSteerDirection = shieldersSteerDirection.length
+      ? shieldersSteerDirection.concat(steerDirection).reduce((sum, current) => sum + current, 0)
+      : steerDirection;
+
+    snake.v.direction = utils.mod(snake.v.direction + averageSteerDirection, utils.TAU);
 
     // Max speed
     const maxSpeed = 5; const
@@ -395,6 +397,21 @@ function emitLevelStateMessage({ network, players }) {
   };
 
   network.socket?.emit('step', message);
+}
+
+function isShieldActive(player, snake) {
+  return player.powerup
+    && player.powerup.type === 'shield'
+    && player.powerup.active
+    && utils.distanceToPlayer(snake, player) <= 100;
+}
+
+function calculateSnakeToPlayerDirection(shieldActive, snake, player) {
+  const steerSpeed = (Math.PI / 32) * (shieldActive ? -3 : 1);
+  const targetAngle = utils.angleToPlayer(snake, player);
+
+  const steerDirection = (targetAngle !== 0) * (targetAngle < Math.PI ? steerSpeed : -steerSpeed);
+  return steerDirection;
 }
 
 export default { step, handleSocketEvent };
