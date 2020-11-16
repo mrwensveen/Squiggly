@@ -51,6 +51,16 @@ export function allPlayersReady(players) {
   return !players.some((p) => p && !p.ready);
 }
 
+const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+export function randomGameName(length = 7) {
+  let name = '';
+  for (let i = 0; i < length; i++) {
+    name += alphabet[(Math.floor(Math.random() * alphabet.length))];
+  }
+
+  return name;
+}
+
 function closestPlayerReducer(acc, player) {
   const distance = distanceToPlayer(acc.snake, player);
   return !acc.distance || distance < acc.distance ? { snake: acc.snake, distance, player } : acc;

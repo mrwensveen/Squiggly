@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Squiggly!</title>
-<link href='https://fonts.googleapis.com/css?family=Rubik Mono One' rel='stylesheet'>
+<link href="https://fonts.googleapis.com/css?family=Rubik Mono One" rel="stylesheet">
 <style>
   body { background-color: #fff; font-family: Arial, Helvetica, sans-serif;}
   #canvases { position: relative; width: 800px; height: 600px; cursor: none; display: none; }
@@ -22,7 +22,14 @@
     height: 100%;
     object-fit: contain;
   }
-  #instructions { text-align: center; }
+  #instructions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  #instructions div { margin: 5px 0; }
+
   .licenses pre { font-size: .8em; }
 </style>
 <script>
@@ -73,10 +80,11 @@ function levelSocketEvent(event, data, context) {
 
 function announce() {
   const player = PLAYERS[NETWORK.clientIndex];
-  NETWORK.socket.emit("announce", {
+  NETWORK.socket.emit('announce', {
     safe: true,
     i: NETWORK.clientIndex,
     remoteId: NETWORK.socket.id,
+    isHost: player.isHost,
     position: player.position,
     ready: player.ready
   });
@@ -179,9 +187,93 @@ function initializeAndStart(beforeStart = player => {}) {
   window.requestAnimationFrame(pump);
 }
 
-document.addEventListener("DOMContentLoaded", function() {
-  document.getElementById('start').focus();
+function startMultiPlayer(gameName) {
+  // Connect to the socket server and join the game's room
+  const socket = io(SOCKET_SERVER, {
+    query: { room: gameName }
+  });
 
+  // -- Server events --
+
+  socket.on('connect', () => {
+    NETWORK.socket = socket;
+  });
+
+  socket.on('leave', data => {
+    console.log('leave', data);
+
+    // Remove the leaving player from the game
+    const index = PLAYERS.findIndex(p => p?.remoteId === data);
+    if (index > -1) {
+      const wasHost  = PLAYERS[index].isHost;
+      PLAYERS[index] = undefined;
+
+      // The leaving player was host.
+      // Make the first player still in the game the new host.
+      if (wasHost) {
+        PLAYERS.find(Boolean).isHost = true;
+      }
+    }
+  });
+
+  socket.on('welcome', data => {
+    console.log('welcome', data);
+
+    NETWORK.clientIndex = Number.parseInt(data);
+    NETWORK.isHost = NETWORK.clientIndex === 0;
+
+    initializeAndStart(player => {
+      player.ready = false;
+
+      // Announce your initial position
+      announce();
+    });
+  });
+
+  // -- Game client events --
+
+  socket.on('announce', data => {
+    console.log('announce', data);
+
+    // A challenger has arrived!
+    const {i: remoteClientIndex, ...remotePlayerData} = data;
+
+    // Add the remote player to the PLAYERS array
+    if (!PLAYERS[remoteClientIndex]) {
+      PLAYERS[remoteClientIndex] = {
+        ...new_player,
+        ...remotePlayerData
+      };
+
+      // Announce your position to the new player
+      announce();
+    }
+  });
+
+  socket.on('step', data => {
+    if (data && data.p) {
+      const {i: remoteClientIndex, ...remotePlayerData} = data.p;
+      const player = PLAYERS[remoteClientIndex];
+
+      // Update the remote player's data in our local copy
+      if(player) {
+        Object.assign(player, remotePlayerData);
+      }
+    }
+  });
+
+  socket.onAny((event, data) => {
+    const context = { network: NETWORK, players: PLAYERS };
+    onSocketEvent?.call(null, event, data, context);
+  })
+}
+
+function startSinglePlayer() {
+  initializeAndStart();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize the new_player template
   new_player = {
     img: new Image(),
     position: null,
@@ -200,96 +292,59 @@ document.addEventListener("DOMContentLoaded", function() {
   });
   new_player.img.src = 'player.png';
 
-  document.getElementById('start').addEventListener('click', function() {
+  // Set up the front page UI and event listeners
+  document.getElementById('game_name').value = '';
+  document.getElementById('game_link').value = '';
 
-    // If the user put a value in the game_name field, connect to socket.io and join the room with that name
+  document.getElementById('start_mp').addEventListener('click', function() {
     const gameName = document.getElementById('game_name').value;
     if (gameName) {
-      // Connect to the socket server and join the game's room
-      const socket = io(SOCKET_SERVER, {
-        query: { room: gameName }
-      });
-
-      // -- Server events --
-
-      socket.on("connect", () => {
-        NETWORK.socket = socket;
-      });
-
-      socket.on("leave", data => {
-        console.log("leave", data);
-
-        // Remove the leaving player from the game
-        const index = PLAYERS.findIndex(p => p?.remoteId === data);
-        if (index > -1) {
-          PLAYERS[index] = undefined;
-        }
-      });
-
-      socket.on("welcome", data => {
-        console.log("welcome", data);
-
-        NETWORK.clientIndex = Number.parseInt(data);
-        NETWORK.isHost = NETWORK.clientIndex === 0;
-
-        initializeAndStart(player => {
-          player.ready = false;
-
-          // Announce your initial position
-          announce();
-        });
-      });
-
-      // -- Game client events --
-
-      socket.on("announce", data => {
-        console.log("announce", data);
-
-        // A challenger has arrived!
-        const {i: remoteClientIndex, ...remotePlayerData} = data;
-
-        // Add the remote player to the PLAYERS array
-        if (!PLAYERS[remoteClientIndex]) {
-          PLAYERS[remoteClientIndex] = {
-            ...new_player,
-            ...remotePlayerData
-          };
-
-          // Announce your position to the new player
-          announce();
-        }
-      });
-
-      socket.on("step", data => {
-        if (data && data.p) {
-          const {i: remoteClientIndex, ...remotePlayerData} = data.p;
-          const player = PLAYERS[remoteClientIndex];
-
-          // Update the remote player's data in our local copy
-          if(player) {
-            Object.assign(player, remotePlayerData);
-          }
-        }
-      });
-
-      socket.onAny((event, data) => {
-        const context = { network: NETWORK, players: PLAYERS };
-        onSocketEvent?.call(null, event, data, context);
-      })
-    } else {
-      initializeAndStart();
+      window.location.href = new URL('#' + gameName, window.location).href;
+      startMultiPlayer(gameName);
     }
   });
+
+  document.getElementById('start_sp').addEventListener('click', function() {
+    startSinglePlayer();
+  });
+
+  function setGameName(gameName) {
+    document.getElementById('game_name').value = gameName;
+    document.getElementById('game_link').value = new URL('#' + gameName, window.location).href;
+  }
+
+  window.addEventListener('hashchange', function () {
+    setGameName(window.location.hash.substr(1));
+  });
+
+  document.getElementById('create').addEventListener('click', function() {
+    setGameName(utils.randomGameName());
+  });
+
+  if (window.location.hash) {
+    setGameName(window.location.hash.substr(1));
+  }
 });
 </script>
 </head>
 <body>
   <div id="instructions">
-    <p>Press the <strong>arrow keys</strong> to move the player and <strong>shift</strong> to use power-ups.</p>
-    <p>Escape the sandworms until they starve.<br/>You monster.</p>
-    <p>(You can only be bitten by the heads of the sandworms)</p>
-    <p>Host/join multi-player game: <input id="game_name" placeholder="Game name..." value="test"/></p>
-    <button id="start">Start</button>
+    <div>
+      <p>Press the <strong>arrow keys</strong> to move the player and <strong>shift</strong> to use power-ups.</p>
+      <p>Escape the sandworms until they starve.<br/>You monster.</p>
+      <p>(You can only be bitten by the heads of the sandworms)</p>
+    </div>
+    <div style="border: 1px solid gray; padding: 5px;">
+      <p>Create a multi-player game: <button id="create">Create game</button></p>
+      <p>Shareable link: <input id="game_link" value="" size="40"/></p>
+      <input type="hidden" id="game_name" value="" />
+      <button id="start_mp">Start/join</button>
+    </div>
+    <div style="border: 1px solid gray; padding: 5px;">
+      <p>Or play a single player game!</p>
+      <button id="start_sp">Start</button>
+    </div>
+
     <div class="licenses">
 <!-- music_01.mp3 -->
 <pre>
