@@ -32,7 +32,7 @@ function step(context, area) {
   ctx.fillText(Math.floor(player.level), 568 + x, top);
 
   // XXX: Debug info
-  ctx.fillText(network.isHost ? 'H' : 'C', 620 + x, top);
+  // ctx.fillText(network.isHost ? 'H' : 'C', 620 + x, top);
 }
 
 export default { step };
