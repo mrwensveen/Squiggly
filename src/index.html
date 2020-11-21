@@ -56,7 +56,22 @@ import INPUT from './js/input.js'
 
 // --- Game elements ---
 
-let new_player = null;
+// Initialize the new_player template
+const new_player = {
+  img: new Image(),
+  position: null,
+  health: window.location.hash === '#test' ? 10 : 100,
+  score: 0,
+  level: 0,
+  powerup: null,
+  ready: true
+};
+new_player.img.addEventListener('load', function() {
+  // Scale the player sprite
+  new_player.img.width /= 2;
+  new_player.img.height /= 2;
+});
+new_player.img.src = 'player.png';
 
 const WIDTH = 800, HEIGHT = 600;
 
@@ -271,25 +286,6 @@ function startSinglePlayer() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  // Initialize the new_player template
-  new_player = {
-    img: new Image(),
-    position: null,
-    health: window.location.hash === '#test' ? 10 : 100,
-    score: 0,
-    level: 0,
-    powerup: null,
-    ready: true
-  };
-
-  new_player.img.addEventListener('load', function() {
-    // TODO: Don't scale the player sprite.
-    // Scale the player sprite
-    new_player.img.width /= 2;
-    new_player.img.height /= 2;
-  });
-  new_player.img.src = 'player.png';
-
   // Set up the front page UI and event listeners
   document.getElementById('game_name').value = '';
   document.getElementById('game_link').value = '';
