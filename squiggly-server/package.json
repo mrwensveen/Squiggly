@@ -3,6 +3,6 @@
   "version": "0.0.1",
   "description": "Squiggly socket.io app",
   "dependencies": {
-    "socket.io": "^3.1.2"
+    "socket.io": "^4.5.3"
   }
 }
